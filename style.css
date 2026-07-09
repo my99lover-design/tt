@@ -1,0 +1,49 @@
+:root { --bg-color: #f0f2f5; --card-bg: #ffffff; --primary: #3b82f6; --text-main: #111827; --text-sub: #6b7280; --accent: #ef4444; --border: #e5e7eb; --gps-btn-bg: #e0e7ff; --gps-btn-text: #4f46e5; --step-bg: #f3f4f6; }
+[data-theme="dark"] { --bg-color: #111827; --card-bg: #1f2937; --primary: #60a5fa; --text-main: #f9fafb; --text-sub: #9ca3af; --accent: #f87171; --border: #374151; --gps-btn-bg: #312e81; --gps-btn-text: #c7d2fe; --step-bg: #374151; }
+body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background-color: var(--bg-color); color: var(--text-main); margin: 0; padding: 15px; display: flex; flex-direction: column; align-items: center; transition: all 0.3s; }
+.container { width: 100%; max-width: 500px; padding-bottom: 40px; }
+.header-area { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; margin-top: 5px; }
+h1 { font-size: 1.5rem; margin: 0; line-height: 1.1; }
+.theme-toggle { background: var(--card-bg); border: 1px solid var(--border); padding: 8px 16px; border-radius: 20px; cursor: pointer; color: var(--text-main); font-size: 1.1rem; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+.nav-buttons-container { display: none; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px; width: 100%; }
+.nav-btn { background: var(--card-bg); border: 2px solid var(--border); padding: 15px 0; border-radius: 16px; cursor: pointer; color: var(--text-main); font-size: 1.25rem; font-weight: bold; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.06); }
+.nav-btn:active { background: var(--step-bg); }
+.gps-section { margin-bottom: 20px; display: none; }
+.gps-header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+.gps-title { font-size: 1rem; color: var(--text-sub); font-weight: bold; }
+.gps-status-badge { font-size: 0.85rem; font-weight: bold; padding: 4px 10px; border-radius: 12px; background: var(--card-bg); border: 1px solid var(--border); }
+.gps-buttons { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; padding-bottom: 8px; width: 100%; }
+.gps-btn { background: var(--gps-btn-bg); color: var(--gps-btn-text); border: none; padding: 10px 2px; border-radius: 12px; font-size: 0.85rem; font-weight: bold; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.05); text-align: center; overflow: hidden; }
+.step-container { background: var(--card-bg); border: 1px solid var(--border); border-radius: 20px; padding: 15px; margin-bottom: 25px; box-shadow: 0 4px 10px rgba(0,0,0,0.04); }
+.btn-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.select-btn { background: var(--step-bg); color: var(--text-main); border: 1px solid var(--border); padding: 18px 5px; border-radius: 16px; font-size: 1.15rem; font-weight: bold; cursor: pointer; text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
+.card-list { display: flex; flex-direction: column; gap: 14px; width: 100%; box-sizing: border-box; }
+.common-pwd-area { text-align: left; width: 100%; padding: 5px 0 12px 5px; box-sizing: border-box; display: none; }
+.common-pwd-title { font-size: 1.3rem; font-weight: 900; color: var(--text-main); margin-bottom: 6px; }
+.common-pwd-row { display: flex; align-items: center; gap: 10px; }
+.common-pwd-value { font-size: 1.15rem; font-weight: 800; color: var(--primary); background: var(--card-bg); display: inline-block; padding: 6px 12px; border-radius: 10px; border: 1px dashed var(--border); }
+.common-edit-btn { background: var(--step-bg); border: 1px solid var(--border); padding: 6px 12px; border-radius: 10px; font-size: 0.9rem; font-weight: bold; color: var(--text-sub); cursor: pointer; }
+.card { background: var(--card-bg); padding: 16px; border-radius: 18px; border: 1px solid var(--border); box-shadow: 0 4px 8px rgba(0,0,0,0.03); display: flex; flex-direction: column; gap: 8px; width: 100%; box-sizing: border-box; }
+.line-info { font-size: 1.15rem; font-weight: 800; color: var(--primary); text-align: left; }
+.pwd-box { background: rgba(239, 68, 68, 0.03); border: 1.5px solid var(--accent); padding: 12px; border-radius: 12px; width: 100%; box-sizing: border-box; text-align: left; line-height: 1.5; margin-bottom: 4px; }
+.pwd-container { display: flex; flex-direction: column; gap: 12px; }
+.pwd-row { display: flex; flex-direction: column; gap: 4px; }
+.pwd-highlight { font-size: 1.02rem; font-weight: 700; color: var(--accent); letter-spacing: 0.3px; white-space: pre-wrap; word-break: break-all; }
+.card-footer { display: flex; justify-content: flex-end; align-items: center; margin-top: 2px; }
+.edit-trigger-btn { background: none; border: none; color: var(--text-sub); font-size: 0.85rem; font-weight: bold; cursor: pointer; text-decoration: underline; opacity: 0.7; padding: 4px 0; }
+.modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; }
+.modal-content { background: var(--card-bg); padding: 25px; border-radius: 24px; width: 92%; max-width: 440px; box-sizing: border-box; }
+.modal h3 { margin-top: 0; margin-bottom: 20px; font-size: 1.3rem; }
+.form-group { margin-bottom: 16px; display: flex; flex-direction: column; gap: 6px; }
+.form-group label { font-size: 0.95rem; color: var(--text-sub); font-weight: bold; }
+.form-group input { padding: 14px; border: 1px solid var(--border); border-radius: 10px; background: var(--bg-color); color: var(--text-main); font-size: 1.1rem; }
+.modal-buttons { display: flex; gap: 10px; margin-top: 20px; }
+.modal-btn { flex: 1; padding: 15px; border: none; border-radius: 12px; font-weight: bold; cursor: pointer; font-size: 1.1rem; }
+.btn-submit { background: var(--primary); color: white; }
+.btn-cancel { background: var(--border); color: var(--text-main); }
+.btn-delete { background: var(--accent); color: white; }
+.status-msg { text-align: center; color: var(--text-sub); font-size: 1.1rem; width: 100%; padding: 20px 0; }
+.spinner { width: 20px; height: 20px; border: 3px solid #e5e7eb; border-top: 3px solid var(--primary); border-radius: 50%; animation: spin 1s linear infinite; display: inline-block; vertical-align: middle; margin-right: 8px; }
+@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+.header-single #titleMain{ font-size:2.1rem !important; }
+.header-single #titleSub{ display:none; }
