@@ -244,4 +244,16 @@ async function deleteData() {
     try { await fetch(GAS_WEB_APP_URL, { method: 'POST', body: JSON.stringify({ action: 'delete', rowId: rowId }) }); }
     catch (e) { alert("삭제 실패!"); await loadData(); }
 }
+
+function openAddModal(rowId){
+    alert("추가 기능");
+}
+
+function openDeleteModal(rowId){
+    alert("삭제 기능");
+}
 loadData();
+
+
+
+
