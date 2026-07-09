@@ -156,7 +156,39 @@ function renderFinalCards(apt, dong) {
     }, {});
     Object.keys(groupedByLine).sort((a, b) => (parseInt(a.match(/\d+/)?.[0]) || 0) - (parseInt(b.match(/\d+/)?.[0]) || 0)).forEach(lineText => {
         const card = document.createElement('div'); card.className = 'card';
-        card.innerHTML = `<div class="line-info">&lt;${lineText}&gt;</div><div class="pwd-container">${groupedByLine[lineText].map(item => `<div class="pwd-row"><div class="pwd-box"><span class="pwd-highlight">${item.비번 || '-'}</span></div><div class="card-footer"><button class="edit-trigger-btn" onclick="openEditModal(${item.rowId})">수정</button></div></div>`).join('')}</div>`;
+        card.innerHTML = `
+<div class="line-info">&lt;${lineText}&gt;</div>
+
+<div class="pwd-container">
+
+${groupedByLine[lineText].map(item=>`
+
+<div class="pwd-row">
+
+<div class="pwd-box">
+<span class="pwd-highlight">${item.비번 || "-"}</span>
+</div>
+
+<div class="card-footer">
+
+<button class="line-btn add-btn"
+onclick="openAddModal(${item.rowId})">
+➕ 추가
+</button>
+
+<button class="line-btn delete-btn"
+onclick="openDeleteModal(${item.rowId})">
+🗑 삭제
+</button>
+
+</div>
+
+</div>
+
+`).join("")}
+
+</div>
+`;
         cardList.appendChild(card);
     });
 }
