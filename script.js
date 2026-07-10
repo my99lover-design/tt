@@ -1380,7 +1380,50 @@ function renderApartmentButtons() {
                         record.apartment
                 )
         ).sort(
-            naturalCompare
+            (a, b) => {
+                const apartmentA =
+                    cleanText(a);
+
+                const apartmentB =
+                    cleanText(b);
+
+                /*
+                 * 이름에 '오피'가 들어간 항목은
+                 * 일반 아파트보다 뒤로 보냅니다.
+                 */
+                const isOfficeA =
+                    apartmentA.includes("오피");
+
+                const isOfficeB =
+                    apartmentB.includes("오피");
+
+                if (
+                    isOfficeA &&
+                    !isOfficeB
+                ) {
+                    return 1;
+                }
+
+                if (
+                    !isOfficeA &&
+                    isOfficeB
+                ) {
+                    return -1;
+                }
+
+                /*
+                 * 일반 아파트끼리 가나다순
+                 * 오피 관련 항목끼리도 가나다순
+                 */
+                return apartmentA.localeCompare(
+                    apartmentB,
+                    "ko-KR",
+                    {
+                        numeric: true,
+                        sensitivity: "base"
+                    }
+                );
+            }
         );
 
     if (
