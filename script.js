@@ -1682,7 +1682,7 @@ function renderGpsButtons() {
         button.style.whiteSpace = "pre-line";
 
         const distanceText = formatDistance(item.distance);
-        const displayPlace = item.isOffice ? `오피·${item.displayName}` : item.displayName;
+        const displayPlace = item.displayName;
         button.textContent = `${displayPlace}\n${distanceText}`;
         button.title = item.isOffice
             ? `${item.region} · ${item.apartment} · ${item.dong} · ${distanceText}`
