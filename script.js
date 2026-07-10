@@ -12,7 +12,7 @@
    - 저장 대기열 영구 보관 및 자동 재시도
 ========================================================= */
 
-const API_URL = "여기에_현재_사용중인_GOOGLE_APPS_SCRIPT_EXEC_주소";
+const API_URL = "https://script.google.com/macros/s/AKfycbxMc74RsguWtr-4Nx3w2OeTctpb8-ILGN5j41kW97YNY-0KMX4FOfdvQUKDL0UGTbxk/exec";
 const LOCATIONS_URL = "./locations.json";
 
 const APP_CONFIG = Object.freeze({
