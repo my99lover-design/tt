@@ -1,5 +1,5 @@
-const CACHE_NAME = "gimpo-b-pwa-v4";
-const APP_SHELL = ["./", "./index.html", "./style.css?v=4", "./script.js?v=4", "./locations.json", "./manifest.json", "./icons/icon-180.png", "./icons/icon-192.png", "./icons/icon-512.png"];
+const CACHE_NAME = "gimpo-b-pwa-v5";
+const APP_SHELL = ["./", "./index.html", "./style.css?v=5", "./script.js?v=5", "./locations.json", "./manifest.json", "./icons/icon-180.png", "./icons/icon-192.png", "./icons/icon-512.png"];
 
 self.addEventListener("install", event => {
     event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(APP_SHELL)));
