@@ -2,69 +2,315 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+    <meta
+        name="viewport"
+        content="width=device-width,
+                 initial-scale=1.0,
+                 maximum-scale=1.0,
+                 user-scalable=no"
+    >
+
     <title>🔑 넘버원 김포B 공비</title>
+
     <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
-    <div class="container">
-        <div class="header-area">
-            <h1 id="appTitle">
-    <div id="titleMain" style="font-size:3.0rem;font-weight:900;">
-        넘버원🥇
+
+<div class="container">
+
+    <!-- 상단 제목 -->
+    <header class="header-area">
+
+        <h1 id="appTitle">
+
+            <span id="titleMain">
+                넘버원🥇
+            </span>
+
+            <span id="titleSub">
+                김포B 공비
+            </span>
+
+        </h1>
+
+        <button
+            id="themeToggle"
+            class="theme-toggle"
+            type="button"
+        >
+            🌙 밝기전환
+        </button>
+
+    </header>
+
+
+    <!-- 뒤로가기 / 홈 -->
+    <nav
+        id="navContainer"
+        class="nav-buttons-container"
+    >
+
+        <button
+            id="backBtn"
+            class="nav-btn"
+            type="button"
+            onclick="goBack()"
+        >
+            ⬅️ 뒤로가기
+        </button>
+
+        <button
+            id="homeBtn"
+            class="nav-btn"
+            type="button"
+            onclick="resetSteps()"
+        >
+            🏠 홈으로
+        </button>
+
+    </nav>
+
+
+    <!-- GPS -->
+    <section
+        id="gpsSection"
+        class="gps-section"
+    >
+
+        <div class="gps-header-row">
+
+            <div class="gps-title">
+                📍 내 주변(GPS)
+            </div>
+
+            <div
+                id="gpsStatusBadge"
+                class="gps-status-badge"
+            >
+                📡 신호 분석 중...
+            </div>
+
+        </div>
+
+        <div
+            id="gpsButtons"
+            class="gps-buttons"
+        ></div>
+
+    </section>
+
+
+    <!-- 공동비밀번호 -->
+    <section
+        id="commonPwdStandalone"
+        class="common-pwd-area"
+    ></section>
+
+
+    <!-- 지역 / 아파트 / 동 버튼 -->
+    <section
+        id="stepContainer"
+        class="step-container"
+    >
+
+        <div
+            id="buttonGrid"
+            class="btn-grid"
+        >
+            데이터를 불러오는 중... ⏳
+        </div>
+
+    </section>
+
+
+    <!-- 최종 라인별 비밀번호 -->
+    <section
+        id="cardList"
+        class="card-list"
+    ></section>
+
+</div>
+
+
+<!-- 공동비밀번호 수정 모달 -->
+<div
+    id="commonEditorModal"
+    class="modal"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="commonModalTitle"
+>
+
+    <div class="modal-content">
+
+        <h3 id="commonModalTitle">
+            ⚙️ 공동비밀번호 수정
+        </h3>
+
+        <div class="form-group">
+
+            <label id="commonModalAptLabel">
+                아파트명
+            </label>
+
+            <input
+                type="text"
+                id="formCommonPwdValue"
+                autocomplete="off"
+                placeholder="공동비밀번호 입력"
+            >
+
+        </div>
+
+        <div class="modal-buttons">
+
+            <button
+                class="modal-btn btn-submit"
+                type="button"
+                onclick="submitCommonPwdForm()"
+            >
+                저장
+            </button>
+
+            <button
+                class="modal-btn btn-cancel"
+                type="button"
+                onclick="closeCommonModal()"
+            >
+                취소
+            </button>
+
+        </div>
+
     </div>
 
-    <div id="titleSub" style="font-size:1.8rem;font-weight:600;color:var(--text-sub);">
-        김포B 공비
+</div>
+
+
+<!-- 라인 비밀번호 추가 모달 -->
+<div
+    id="addPwdModal"
+    class="modal"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="addPwdModalTitle"
+>
+
+    <div class="modal-content">
+
+        <h3 id="addPwdModalTitle">
+            ➕ 비밀번호 추가
+        </h3>
+
+        <input
+            type="hidden"
+            id="addPwdRowId"
+        >
+
+        <div
+            id="addPwdInfo"
+            class="modal-info"
+        ></div>
+
+        <div class="form-group">
+
+            <label for="addPwdValue">
+                새 비밀번호
+            </label>
+
+            <input
+                type="text"
+                id="addPwdValue"
+                autocomplete="off"
+                placeholder="추가할 비밀번호 입력"
+            >
+
+        </div>
+
+        <div class="modal-buttons">
+
+            <button
+                class="modal-btn btn-submit"
+                type="button"
+                onclick="submitAddPwd()"
+            >
+                추가
+            </button>
+
+            <button
+                class="modal-btn btn-cancel"
+                type="button"
+                onclick="closeAddPwdModal()"
+            >
+                취소
+            </button>
+
+        </div>
+
     </div>
-</h1>
-            <button id="themeToggle" class="theme-toggle">🌙</button>
+
+</div>
+
+
+<!-- 라인 비밀번호 삭제 모달 -->
+<div
+    id="deletePwdModal"
+    class="modal"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="deletePwdModalTitle"
+>
+
+    <div class="modal-content">
+
+        <h3 id="deletePwdModalTitle">
+            🗑 삭제할 비밀번호 선택
+        </h3>
+
+        <input
+            type="hidden"
+            id="deletePwdRowId"
+        >
+
+        <div
+            id="deletePwdInfo"
+            class="modal-info"
+        ></div>
+
+        <div
+            id="deletePwdButtons"
+            class="delete-pwd-buttons"
+        ></div>
+
+        <div class="modal-buttons">
+
+            <button
+                class="modal-btn btn-cancel"
+                type="button"
+                onclick="closeDeletePwdModal()"
+            >
+                취소
+            </button>
+
         </div>
-        <div id="navContainer" class="nav-buttons-container">
-            <button id="backBtn" class="nav-btn" onclick="goBack()">⬅️ 뒤로가기</button>
-            <button id="homeBtn" class="nav-btn" onclick="resetSteps()">🏠 홈으로</button>
-        </div>
-        <div id="gpsSection" class="gps-section">
-            <div class="gps-header-row">
-                <div class="gps-title">📍 내 주변(GPS)</div>
-                <div id="gpsStatusBadge" class="gps-status-badge">📡 신호 분석 중...</div>
-            </div>
-            <div id="gpsButtons" class="gps-buttons"></div>
-        </div>
-        <div id="commonPwdStandalone" class="common-pwd-area"></div>
-        <div id="stepContainer" class="step-container">
-            <div id="buttonGrid" class="btn-grid">데이터를 불러오는 중... ⏳</div>
-        </div>
-        <div id="cardList" class="card-list"></div>
+
     </div>
-    <div id="commonEditorModal" class="modal">
-        <div class="modal-content">
-            <h3>⚙️ 공동비밀번호 수정</h3>
-            <div class="form-group">
-                <label id="commonModalAptLabel">아파트명</label>
-                <input type="text" id="formCommonPwdValue">
-            </div>
-            <div class="modal-buttons">
-                <button class="modal-btn btn-submit" onclick="submitCommonPwdForm()">저장</button>
-                <button class="modal-btn btn-cancel" onclick="closeCommonModal()">취소</button>
-            </div>
-        </div>
-    </div>
-    <div id="editorModal" class="modal">
-        <div class="modal-content">
-            <h3 id="modalTitle">🔑 비밀번호 수정</h3>
-            <input type="hidden" id="formRowId">
-            <div id="readOnlyInfo" style="font-size: 0.9rem; color: var(--text-sub); margin-bottom: 10px;"></div>
-            <div class="form-group">
-                <label>새 비밀번호</label>
-                <input type="text" id="formPwd" placeholder="변경할 번호를 입력하세요">
-            </div>
-            <div class="modal-buttons">
-                <button class="modal-btn btn-submit" onclick="submitForm()">저장</button>
-                <button class="modal-btn btn-cancel" onclick="closeModal()">취소</button>
-            </div>
-        </div>
-    </div>
-    <script src="script.js"></script>
+
+</div>
+
+
+<!-- 하단 안내 메시지 -->
+<div
+    id="toast"
+    class="toast"
+    role="status"
+    aria-live="polite"
+></div>
+
+
+<script src="script.js"></script>
+
 </body>
 </html>
