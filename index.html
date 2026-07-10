@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#0f1d3d">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="김포B 공비">
+    <title>🔑 넘버원 김포B 공비</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+    <link rel="apple-touch-icon" href="icons/icon-180.png">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="container">
+    <header class="header-area">
+        <h1 id="appTitle"><span id="titleMain">넘버원🥇</span><span id="titleSub">김포B 공비</span></h1>
+        <button id="themeToggle" class="theme-toggle" type="button">🌙 밝기</button>
+    </header>
+
+    <button id="installAppBtn" class="install-app-btn" type="button" hidden>📲 앱 설치</button>
+
+    <nav id="navContainer" class="nav-buttons-container">
+        <button id="backBtn" class="nav-btn" type="button" onclick="goBack()">⬅️ 뒤로가기</button>
+        <button id="homeBtn" class="nav-btn" type="button" onclick="resetSteps()">🏠 홈으로</button>
+    </nav>
+
+    <section id="gpsSection" class="gps-section">
+        <div class="gps-header-row"><div class="gps-title">📍 내 주변(GPS)</div><div id="gpsStatusBadge" class="gps-status-badge">📡 신호 분석 중...</div></div>
+        <div id="gpsButtons" class="gps-buttons"></div>
+    </section>
+
+    <section id="commonPwdStandalone" class="common-pwd-area"></section>
+    <section id="stepContainer" class="step-container"><div id="buttonGrid" class="btn-grid">데이터를 불러오는 중... ⏳</div></section>
+    <section id="cardList" class="card-list"></section>
+    <div class="admin-bottom-actions">
+        <button id="adminBtn" class="admin-btn" type="button">🔒 관리자만</button>
+        <button id="historyBtn" class="history-btn history-btn-bottom" type="button">🕘 수정기록</button>
+    </div>
+</div>
+
+<div id="commonEditorModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="commonModalTitle">
+    <div class="modal-content">
+        <h3 id="commonModalTitle">⚙️ 공동비밀번호 수정</h3>
+        <div class="form-group"><label id="commonModalAptLabel">아파트명</label><input type="text" id="formCommonPwdValue" autocomplete="off" placeholder="공동비밀번호 입력"></div>
+        <div class="modal-buttons"><button class="modal-btn btn-submit" type="button" onclick="submitCommonPwdForm()">저장</button><button class="modal-btn btn-cancel" type="button" onclick="closeCommonModal()">취소</button></div>
+    </div>
+</div>
+
+<div id="addPwdModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="addPwdModalTitle">
+    <div class="modal-content">
+        <h3 id="addPwdModalTitle">➕ 비밀번호 추가</h3>
+        <input type="hidden" id="addPwdRowId">
+        <div id="addPwdInfo" class="modal-info"></div>
+        <div class="form-group"><label for="addPwdValue">새 비밀번호</label><input type="text" id="addPwdValue" autocomplete="off" placeholder="추가할 비밀번호 입력"></div>
+        <div class="modal-buttons"><button class="modal-btn btn-submit" type="button" onclick="submitAddPwd()">추가</button><button class="modal-btn btn-cancel" type="button" onclick="closeAddPwdModal()">취소</button></div>
+    </div>
+</div>
+
+<div id="deletePwdModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="deletePwdModalTitle">
+    <div class="modal-content">
+        <h3 id="deletePwdModalTitle">🗑 삭제할 비밀번호 선택</h3>
+        <input type="hidden" id="deletePwdRowId">
+        <div id="deletePwdInfo" class="modal-info"></div>
+        <div id="deletePwdButtons" class="delete-pwd-buttons"></div>
+        <div class="modal-buttons"><button class="modal-btn btn-cancel" type="button" onclick="closeDeletePwdModal()">취소</button></div>
+    </div>
+</div>
+
+<div id="historyModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="historyModalTitle">
+    <div class="modal-content history-modal-content">
+        <div class="history-modal-header">
+            <h3 id="historyModalTitle">🕘 수정기록</h3>
+            <div class="history-modal-actions">
+                <button id="historyRefreshBtn" class="history-refresh-btn" type="button">새로고침</button>
+                <button class="history-close-btn" type="button" aria-label="수정기록 닫기" onclick="closeChangeHistoryModal()">×</button>
+            </div>
+        </div>
+        <div id="historyStatus" class="history-status">기록을 불러오는 중입니다...</div>
+        <div id="historyList" class="history-list"></div>
+    </div>
+</div>
+
+<div id="adminPinModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="adminPinModalTitle">
+    <div class="modal-content admin-pin-modal-content">
+        <h3 id="adminPinModalTitle">🔒 관리자 인증</h3>
+        <div class="form-group">
+            <label for="adminPinInput">관리자 PIN 4자리</label>
+            <input id="adminPinInput" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="off" placeholder="••••">
+        </div>
+        <div id="adminPinError" class="admin-pin-error" hidden></div>
+        <div class="modal-buttons">
+            <button id="adminPinSubmitBtn" class="modal-btn btn-submit" type="button">확인</button>
+            <button id="adminPinCancelBtn" class="modal-btn btn-cancel" type="button">취소</button>
+        </div>
+    </div>
+</div>
+
+<div id="adminModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="adminModalTitle">
+    <div class="modal-content admin-modal-content">
+        <div class="admin-modal-header">
+            <h3 id="adminModalTitle">🛠 관리자 점검·백업</h3>
+            <div class="admin-modal-actions">
+                <button id="adminRefreshBtn" class="admin-refresh-btn" type="button">새로고침</button>
+                <button class="admin-close-btn" type="button" aria-label="관리자 화면 닫기" onclick="closeAdminModal()">×</button>
+            </div>
+        </div>
+        <div id="adminStatus" class="admin-status">점검 정보를 불러오는 중입니다...</div>
+        <div id="adminContent" class="admin-content" hidden>
+            <section class="admin-section">
+                <div class="admin-section-title">📊 현재 상태</div>
+                <div id="adminMetrics" class="admin-metrics"></div>
+                <div id="adminGpsWarning" class="admin-warning" hidden></div>
+            </section>
+            <section class="admin-section">
+                <div class="admin-section-head">
+                    <div>💾 백업·복구</div>
+                    <button id="createBackupBtn" class="create-backup-btn" type="button">지금 백업</button>
+                </div>
+                <div class="admin-help">최근 백업 10개를 보관합니다. 복구 전에는 현재 데이터가 자동으로 한 번 더 백업됩니다.</div>
+                <div id="backupList" class="backup-list"></div>
+            </section>
+        </div>
+    </div>
+</div>
+
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+<script src="script.js"></script>
+</body>
+</html>
