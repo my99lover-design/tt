@@ -11,7 +11,7 @@
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
     <link rel="apple-touch-icon" href="icons/icon-180.png">
-    <link rel="stylesheet" href="style.css?v=4">
+    <link rel="stylesheet" href="style.css?v=5">
 </head>
 <body>
 <div class="container">
@@ -21,7 +21,6 @@
     </header>
 
     <button id="installAppBtn" class="install-app-btn" type="button" hidden>📲 앱 설치</button>
-    <button id="historyBtn" class="history-btn" type="button">🕘 수정기록</button>
 
     <nav id="navContainer" class="nav-buttons-container">
         <button id="backBtn" class="nav-btn" type="button" onclick="goBack()">⬅️ 뒤로가기</button>
@@ -36,6 +35,7 @@
     <section id="commonPwdStandalone" class="common-pwd-area"></section>
     <section id="stepContainer" class="step-container"><div id="buttonGrid" class="btn-grid">데이터를 불러오는 중... ⏳</div></section>
     <section id="cardList" class="card-list"></section>
+    <button id="historyBtn" class="history-btn history-btn-bottom" type="button">🕘 수정기록</button>
 </div>
 
 <div id="commonEditorModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="commonModalTitle">
@@ -70,15 +70,17 @@
     <div class="modal-content history-modal-content">
         <div class="history-modal-header">
             <h3 id="historyModalTitle">🕘 수정기록</h3>
-            <button id="historyRefreshBtn" class="history-refresh-btn" type="button">새로고침</button>
+            <div class="history-modal-actions">
+                <button id="historyRefreshBtn" class="history-refresh-btn" type="button">새로고침</button>
+                <button class="history-close-btn" type="button" aria-label="수정기록 닫기" onclick="closeChangeHistoryModal()">×</button>
+            </div>
         </div>
         <div id="historyStatus" class="history-status">기록을 불러오는 중입니다...</div>
         <div id="historyList" class="history-list"></div>
-        <div class="modal-buttons"><button class="modal-btn btn-cancel" type="button" onclick="closeChangeHistoryModal()">닫기</button></div>
     </div>
 </div>
 
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
-<script src="script.js?v=4"></script>
+<script src="script.js?v=5"></script>
 </body>
 </html>
