@@ -2,14 +2,22 @@
 
 /* =========================================================
    넘버원 김포B 공비 V2
-   script.js 1/2
+   script.js 전체 교체본
+   - 스프레드시트 데이터: Apps Script
+   - GPS 좌표 데이터: locations.json
 ========================================================= */
 
 /*
- * Code.gs를 웹 앱으로 배포한 뒤
- * 아래 주소만 실제 배포 URL로 교체합니다.
+ * Google Apps Script 웹 앱 배포 주소를 입력합니다.
+ * 반드시 /exec로 끝나는 주소를 사용합니다.
  */
 const API_URL = "https://script.google.com/macros/s/AKfycbyFbQUILKYrMZEfGl8tXPHThYEK1ncyU0JV36Dbfiqi5cdFRKY06PQUS4IwHDDLW8boIA/exec";
+
+/*
+ * locations.json은 index.html, script.js와
+ * 같은 GitHub 폴더에 둡니다.
+ */
+const LOCATIONS_URL = "./locations.json";
 
 /* =========================================================
    기본 설정
@@ -19,10 +27,10 @@ const APP_CONFIG = Object.freeze({
     CACHE_KEY: "gimpoB_common_password_v2",
     CACHE_TIME_KEY: "gimpoB_common_password_cache_time_v2",
     THEME_KEY: "gimpoB_theme_v2",
-    LOCATION_KEY: "gimpoB_last_location_v2",
+    LAST_LOCATION_KEY: "gimpoB_last_location_v2",
 
     CACHE_MAX_AGE: 1000 * 60 * 60 * 24,
-    LOCATION_MAX_AGE: 1000 * 60 * 60 * 24,
+    LAST_LOCATION_MAX_AGE: 1000 * 60 * 60 * 24,
 
     GPS_BUTTON_COUNT: 4,
     GPS_WATCH_TIME: 30000
@@ -58,33 +66,45 @@ const elements = {
 
     commonEditorModal:
         document.getElementById("commonEditorModal"),
+
     commonModalAptLabel:
         document.getElementById("commonModalAptLabel"),
+
     formCommonPwdValue:
         document.getElementById("formCommonPwdValue"),
 
-    addPwdModal: document.getElementById("addPwdModal"),
+    addPwdModal:
+        document.getElementById("addPwdModal"),
+
     addPwdModalTitle:
         document.getElementById("addPwdModalTitle"),
+
     addPwdRowId:
         document.getElementById("addPwdRowId"),
+
     addPwdInfo:
         document.getElementById("addPwdInfo"),
+
     addPwdValue:
         document.getElementById("addPwdValue"),
 
     deletePwdModal:
         document.getElementById("deletePwdModal"),
+
     deletePwdModalTitle:
         document.getElementById("deletePwdModalTitle"),
+
     deletePwdRowId:
         document.getElementById("deletePwdRowId"),
+
     deletePwdInfo:
         document.getElementById("deletePwdInfo"),
+
     deletePwdButtons:
         document.getElementById("deletePwdButtons"),
 
-    toast: document.getElementById("toast")
+    toast:
+        document.getElementById("toast")
 };
 
 /* =========================================================
@@ -93,6 +113,23 @@ const elements = {
 
 const state = {
     records: [],
+
+    /*
+     * key:
+     * 정규화한 아파트명
+     *
+     * value:
+     * {
+     *   sourceName,
+     *   coordinates: [
+     *      { latitude, longitude }
+     *   ]
+     * }
+     */
+    locationMap: new Map(),
+
+    locationsLoaded: false,
+    locationsError: false,
 
     selectedRegion: "",
     selectedApartment: "",
@@ -117,15 +154,21 @@ const state = {
    앱 시작
 ========================================================= */
 
-document.addEventListener("DOMContentLoaded", initializeApp);
+document.addEventListener(
+    "DOMContentLoaded",
+    initializeApp
+);
 
 async function initializeApp() {
     initializeTheme();
     initializeModalEvents();
 
-    renderLoading("데이터를 불러오는 중입니다...");
+    renderLoading(
+        "데이터를 불러오는 중입니다..."
+    );
 
-    const cachedRecords = loadCachedRecords();
+    const cachedRecords =
+        loadCachedRecords();
 
     if (cachedRecords.length > 0) {
         state.records = cachedRecords;
@@ -134,9 +177,21 @@ async function initializeApp() {
         resetSteps(false);
     }
 
+    /*
+     * GPS는 데이터 로딩과 관계없이 바로 시작합니다.
+     */
     startGps();
 
-    await loadRecordsFromServer();
+    /*
+     * 스프레드시트 데이터와 locations.json을
+     * 동시에 불러옵니다.
+     */
+    await Promise.allSettled([
+        loadRecordsFromServer(),
+        loadLocations()
+    ]);
+
+    renderGpsButtons();
 }
 
 /* =========================================================
@@ -145,28 +200,42 @@ async function initializeApp() {
 
 function initializeTheme() {
     const savedTheme =
-        localStorage.getItem(APP_CONFIG.THEME_KEY) || "light";
+        localStorage.getItem(
+            APP_CONFIG.THEME_KEY
+        ) || "light";
 
     applyTheme(savedTheme);
 
-    elements.themeToggle.addEventListener("click", toggleTheme);
+    elements.themeToggle.addEventListener(
+        "click",
+        toggleTheme
+    );
 }
 
 function toggleTheme() {
     const currentTheme =
-        document.documentElement.getAttribute("data-theme");
+        document.documentElement.getAttribute(
+            "data-theme"
+        );
 
     const nextTheme =
-        currentTheme === "dark" ? "light" : "dark";
+        currentTheme === "dark"
+            ? "light"
+            : "dark";
 
-    localStorage.setItem(APP_CONFIG.THEME_KEY, nextTheme);
+    localStorage.setItem(
+        APP_CONFIG.THEME_KEY,
+        nextTheme
+    );
 
     applyTheme(nextTheme);
 }
 
 function applyTheme(theme) {
     const normalizedTheme =
-        theme === "dark" ? "dark" : "light";
+        theme === "dark"
+            ? "dark"
+            : "light";
 
     document.documentElement.setAttribute(
         "data-theme",
@@ -180,7 +249,7 @@ function applyTheme(theme) {
 }
 
 /* =========================================================
-   데이터 불러오기
+   스프레드시트 데이터 불러오기
 ========================================================= */
 
 async function loadRecordsFromServer() {
@@ -191,7 +260,8 @@ async function loadRecordsFromServer() {
     state.networkLoading = true;
 
     try {
-        const response = await requestApi("getData");
+        const response =
+            await requestApi("getData");
 
         const rawData =
             Array.isArray(response)
@@ -201,16 +271,20 @@ async function loadRecordsFromServer() {
                     : [];
 
         if (rawData.length === 0) {
-            throw new Error("불러온 데이터가 없습니다.");
+            throw new Error(
+                "불러온 데이터가 없습니다."
+            );
         }
 
-        const normalizedRecords = rawData
-            .map((item, index) =>
-                normalizeRecord(item, index)
-            )
-            .filter(record =>
-                record.region && record.apartment
-            );
+        const normalizedRecords =
+            rawData
+                .map((item, index) =>
+                    normalizeRecord(item, index)
+                )
+                .filter(record =>
+                    record.region &&
+                    record.apartment
+                );
 
         if (normalizedRecords.length === 0) {
             throw new Error(
@@ -218,17 +292,24 @@ async function loadRecordsFromServer() {
             );
         }
 
-        state.records = normalizedRecords;
+        state.records =
+            normalizedRecords;
+
         state.loading = false;
 
-        saveRecordsToCache(normalizedRecords);
+        saveRecordsToCache(
+            normalizedRecords
+        );
 
         validateCurrentSelection();
         renderCurrentView();
         renderGpsButtons();
 
     } catch (error) {
-        console.error("데이터 불러오기 실패:", error);
+        console.error(
+            "데이터 불러오기 실패:",
+            error
+        );
 
         state.loading = false;
 
@@ -237,6 +318,7 @@ async function loadRecordsFromServer() {
                 "데이터를 불러오지 못했습니다.",
                 error.message
             );
+
         } else {
             showToast(
                 "서버 연결 실패로 저장된 데이터를 표시합니다."
@@ -249,7 +331,194 @@ async function loadRecordsFromServer() {
 }
 
 /* =========================================================
-   데이터 정규화
+   locations.json 불러오기
+========================================================= */
+
+async function loadLocations() {
+    state.locationsLoaded = false;
+    state.locationsError = false;
+
+    renderGpsButtons();
+
+    try {
+        /*
+         * 수정된 JSON이 즉시 반영되도록
+         * 현재 시간을 주소 뒤에 붙입니다.
+         */
+        const separator =
+            LOCATIONS_URL.includes("?")
+                ? "&"
+                : "?";
+
+        const requestUrl =
+            `${LOCATIONS_URL}${separator}_t=${Date.now()}`;
+
+        const response = await fetch(
+            requestUrl,
+            {
+                method: "GET",
+                cache: "no-store"
+            }
+        );
+
+        if (!response.ok) {
+            throw new Error(
+                `locations.json 응답 오류 (${response.status})`
+            );
+        }
+
+        const rawLocations =
+            await response.json();
+
+        if (
+            !rawLocations ||
+            typeof rawLocations !== "object" ||
+            Array.isArray(rawLocations)
+        ) {
+            throw new Error(
+                "locations.json 형식이 올바르지 않습니다."
+            );
+        }
+
+        state.locationMap =
+            normalizeLocationData(
+                rawLocations
+            );
+
+        state.locationsLoaded = true;
+        state.locationsError = false;
+
+        console.info(
+            `GPS 좌표 아파트 수: ${state.locationMap.size}`
+        );
+
+    } catch (error) {
+        console.error(
+            "locations.json 불러오기 실패:",
+            error
+        );
+
+        state.locationMap =
+            new Map();
+
+        state.locationsLoaded = true;
+        state.locationsError = true;
+
+    } finally {
+        renderGpsButtons();
+    }
+}
+
+/* =========================================================
+   locations.json 정규화
+========================================================= */
+
+function normalizeLocationData(
+    rawLocations
+) {
+    const result = new Map();
+
+    for (
+        const [
+            apartmentName,
+            coordinateList
+        ] of Object.entries(rawLocations)
+    ) {
+        if (!Array.isArray(coordinateList)) {
+            continue;
+        }
+
+        const normalizedName =
+            normalizeApartmentName(
+                apartmentName
+            );
+
+        if (!normalizedName) {
+            continue;
+        }
+
+        const coordinates =
+            coordinateList
+                .map(item => {
+                    const latitude =
+                        Number(item?.lat);
+
+                    const longitude =
+                        Number(item?.lon);
+
+                    return {
+                        latitude,
+                        longitude
+                    };
+                })
+                .filter(item =>
+                    isValidCoordinate(
+                        item.latitude,
+                        item.longitude
+                    )
+                );
+
+        if (coordinates.length === 0) {
+            continue;
+        }
+
+        if (result.has(normalizedName)) {
+            const existing =
+                result.get(normalizedName);
+
+            existing.coordinates.push(
+                ...coordinates
+            );
+
+        } else {
+            result.set(
+                normalizedName,
+                {
+                    sourceName:
+                        cleanText(apartmentName),
+
+                    coordinates
+                }
+            );
+        }
+    }
+
+    return result;
+}
+
+function isValidCoordinate(
+    latitude,
+    longitude
+) {
+    return (
+        Number.isFinite(latitude) &&
+        Number.isFinite(longitude) &&
+        latitude >= -90 &&
+        latitude <= 90 &&
+        longitude >= -180 &&
+        longitude <= 180
+    );
+}
+
+/*
+ * 아파트 이름 비교용 정규화
+ *
+ * 예:
+ * 래미안.        → 래미안
+ * 래미안 아파트  → 래미안
+ * LH1.           → lh1
+ */
+function normalizeApartmentName(value) {
+    return cleanText(value)
+        .normalize("NFKC")
+        .toLowerCase()
+        .replace(/[^\p{L}\p{N}]/gu, "")
+        .replace(/아파트$/u, "")
+        .replace(/오피스텔$/u, "");
+}
+
+/* =========================================================
+   스프레드시트 데이터 정규화
 ========================================================= */
 
 function normalizeRecord(item, index) {
@@ -305,52 +574,51 @@ function normalizeRecord(item, index) {
         "비번"
     ]);
 
-    const latitude = toNullableNumber(
-        firstRawValue(item, [
-            "latitude",
-            "lat",
-            "위도"
-        ])
-    );
-
-    const longitude = toNullableNumber(
-        firstRawValue(item, [
-            "longitude",
-            "lng",
-            "lon",
-            "경도"
-        ])
-    );
-
     return {
         rowId:
             cleanText(rowId) ||
             String(index + 2),
 
-        region: cleanText(region),
-        apartment: cleanText(apartment),
-        commonPassword: cleanText(commonPassword),
-        dong: cleanText(dong),
-        line: cleanText(line),
-        password: cleanText(password),
+        region:
+            cleanText(region),
 
-        latitude,
-        longitude
+        apartment:
+            cleanText(apartment),
+
+        commonPassword:
+            cleanText(commonPassword),
+
+        dong:
+            cleanText(dong),
+
+        line:
+            cleanText(line),
+
+        password:
+            cleanText(password)
     };
 }
 
 function firstValue(object, keys) {
-    return cleanText(firstRawValue(object, keys));
+    return cleanText(
+        firstRawValue(object, keys)
+    );
 }
 
 function firstRawValue(object, keys) {
-    if (!object || typeof object !== "object") {
+    if (
+        !object ||
+        typeof object !== "object"
+    ) {
         return "";
     }
 
     for (const key of keys) {
         if (
-            Object.prototype.hasOwnProperty.call(object, key) &&
+            Object.prototype.hasOwnProperty.call(
+                object,
+                key
+            ) &&
             object[key] !== null &&
             object[key] !== undefined
         ) {
@@ -362,64 +630,53 @@ function firstRawValue(object, keys) {
 }
 
 function cleanText(value) {
-    if (value === null || value === undefined) {
+    if (
+        value === null ||
+        value === undefined
+    ) {
         return "";
     }
 
     return String(value).trim();
 }
 
-function toNullableNumber(value) {
-    if (
-        value === null ||
-        value === undefined ||
-        value === ""
-    ) {
-        return null;
-    }
-
-    const number = Number(value);
-
-    return Number.isFinite(number)
-        ? number
-        : null;
-}
-
 /* =========================================================
-   캐시
+   데이터 캐시
 ========================================================= */
 
 function loadCachedRecords() {
     try {
         const savedData =
-            localStorage.getItem(APP_CONFIG.CACHE_KEY);
-
-        const savedTime = Number(
             localStorage.getItem(
-                APP_CONFIG.CACHE_TIME_KEY
-            )
-        );
+                APP_CONFIG.CACHE_KEY
+            );
+
+        const savedTime =
+            Number(
+                localStorage.getItem(
+                    APP_CONFIG.CACHE_TIME_KEY
+                )
+            );
 
         if (!savedData) {
             return [];
         }
 
-        const parsed = JSON.parse(savedData);
+        const parsed =
+            JSON.parse(savedData);
 
         if (!Array.isArray(parsed)) {
             return [];
         }
 
-        /*
-         * 오래된 캐시여도 인터넷 연결이 안 될 때를 대비해
-         * 데이터 자체는 사용합니다.
-         */
         if (
             savedTime &&
             Date.now() - savedTime >
                 APP_CONFIG.CACHE_MAX_AGE
         ) {
-            console.info("오래된 캐시를 임시 사용합니다.");
+            console.info(
+                "오래된 캐시를 임시로 사용합니다."
+            );
         }
 
         return parsed
@@ -427,13 +684,20 @@ function loadCachedRecords() {
                 normalizeRecord(item, index)
             )
             .filter(record =>
-                record.region && record.apartment
+                record.region &&
+                record.apartment
             );
 
     } catch (error) {
-        console.error("캐시 읽기 실패:", error);
+        console.error(
+            "캐시 읽기 실패:",
+            error
+        );
 
-        localStorage.removeItem(APP_CONFIG.CACHE_KEY);
+        localStorage.removeItem(
+            APP_CONFIG.CACHE_KEY
+        );
+
         localStorage.removeItem(
             APP_CONFIG.CACHE_TIME_KEY
         );
@@ -455,7 +719,10 @@ function saveRecordsToCache(records) {
         );
 
     } catch (error) {
-        console.error("캐시 저장 실패:", error);
+        console.error(
+            "캐시 저장 실패:",
+            error
+        );
     }
 }
 
@@ -477,7 +744,8 @@ function resetSteps(clearHistory = true) {
 }
 
 function goBack() {
-    const previousState = state.history.pop();
+    const previousState =
+        state.history.pop();
 
     if (!previousState) {
         resetSteps();
@@ -501,10 +769,17 @@ function goBack() {
 
 function pushHistory() {
     state.history.push({
-        selectedRegion: state.selectedRegion,
-        selectedApartment: state.selectedApartment,
-        selectedDong: state.selectedDong,
-        view: state.view
+        selectedRegion:
+            state.selectedRegion,
+
+        selectedApartment:
+            state.selectedApartment,
+
+        selectedDong:
+            state.selectedDong,
+
+        view:
+            state.view
     });
 
     if (state.history.length > 20) {
@@ -517,9 +792,11 @@ function validateCurrentSelection() {
         return;
     }
 
-    const regionExists = state.records.some(record =>
-        record.region === state.selectedRegion
-    );
+    const regionExists =
+        state.records.some(record =>
+            record.region ===
+            state.selectedRegion
+        );
 
     if (!regionExists) {
         resetSteps();
@@ -530,16 +807,20 @@ function validateCurrentSelection() {
         return;
     }
 
-    const apartmentExists = state.records.some(record =>
-        record.region === state.selectedRegion &&
-        record.apartment === state.selectedApartment
-    );
+    const apartmentExists =
+        state.records.some(record =>
+            record.region ===
+                state.selectedRegion &&
+            record.apartment ===
+                state.selectedApartment
+        );
 
     if (!apartmentExists) {
         state.selectedApartment = "";
         state.selectedDong = "";
         state.view = "apartments";
         state.history = [];
+
         return;
     }
 
@@ -547,12 +828,17 @@ function validateCurrentSelection() {
         return;
     }
 
-    const dongExists = state.records.some(record =>
-        record.region === state.selectedRegion &&
-        record.apartment === state.selectedApartment &&
-        normalizeDongValue(record.dong) ===
-            normalizeDongValue(state.selectedDong)
-    );
+    const dongExists =
+        state.records.some(record =>
+            record.region ===
+                state.selectedRegion &&
+            record.apartment ===
+                state.selectedApartment &&
+            normalizeDongValue(record.dong) ===
+                normalizeDongValue(
+                    state.selectedDong
+                )
+        );
 
     if (!dongExists) {
         state.selectedDong = "";
@@ -561,7 +847,7 @@ function validateCurrentSelection() {
 }
 
 /* =========================================================
-   화면 전체 렌더링
+   현재 화면 렌더링
 ========================================================= */
 
 function renderCurrentView() {
@@ -571,12 +857,23 @@ function renderCurrentView() {
     elements.cardList.replaceChildren();
     elements.commonPwdStandalone.replaceChildren();
 
-    elements.commonPwdStandalone.style.display = "none";
-    elements.cardList.style.display = "none";
-    elements.stepContainer.style.display = "block";
+    elements.commonPwdStandalone.style.display =
+        "none";
 
-    if (state.loading && state.records.length === 0) {
-        renderLoading("데이터를 불러오는 중입니다...");
+    elements.cardList.style.display =
+        "none";
+
+    elements.stepContainer.style.display =
+        "block";
+
+    if (
+        state.loading &&
+        state.records.length === 0
+    ) {
+        renderLoading(
+            "데이터를 불러오는 중입니다..."
+        );
+
         return;
     }
 
@@ -603,7 +900,8 @@ function renderCurrentView() {
 }
 
 function updateHeaderAndNavigation() {
-    const isHome = state.view === "regions";
+    const isHome =
+        state.view === "regions";
 
     elements.headerArea.classList.toggle(
         "header-single",
@@ -611,22 +909,36 @@ function updateHeaderAndNavigation() {
     );
 
     if (isHome) {
-        elements.titleMain.textContent = "넘버원🥇";
-        elements.titleSub.textContent = "김포B 공비";
+        elements.titleMain.textContent =
+            "넘버원🥇";
 
-        elements.themeToggle.style.display = "";
-        elements.navContainer.style.display = "none";
-        elements.gpsSection.style.display = "block";
+        elements.titleSub.textContent =
+            "김포B 공비";
+
+        elements.themeToggle.style.display =
+            "";
+
+        elements.navContainer.style.display =
+            "none";
+
+        elements.gpsSection.style.display =
+            "block";
 
     } else {
         elements.titleMain.textContent =
             "넘버원🥇 김포B 공비";
 
-        elements.titleSub.textContent = "";
+        elements.titleSub.textContent =
+            "";
 
-        elements.themeToggle.style.display = "none";
-        elements.navContainer.style.display = "grid";
-        elements.gpsSection.style.display = "none";
+        elements.themeToggle.style.display =
+            "none";
+
+        elements.navContainer.style.display =
+            "grid";
+
+        elements.gpsSection.style.display =
+            "none";
     }
 }
 
@@ -635,23 +947,35 @@ function updateHeaderAndNavigation() {
 ========================================================= */
 
 function renderRegionButtons() {
-    const regions = uniqueValues(
-        state.records.map(record => record.region)
-    ).sort(compareRegions);
+    const regions =
+        uniqueValues(
+            state.records.map(
+                record => record.region
+            )
+        ).sort(compareRegions);
 
     if (regions.length === 0) {
-        renderStatusMessage("등록된 지역이 없습니다.");
+        renderStatusMessage(
+            "등록된 지역이 없습니다."
+        );
+
         return;
     }
 
     for (const region of regions) {
-        const button = createSelectButton(region);
+        const button =
+            createSelectButton(region);
 
-        button.addEventListener("click", () => {
-            selectRegion(region);
-        });
+        button.addEventListener(
+            "click",
+            () => {
+                selectRegion(region);
+            }
+        );
 
-        elements.buttonGrid.appendChild(button);
+        elements.buttonGrid.appendChild(
+            button
+        );
     }
 
     renderGpsButtons();
@@ -673,36 +997,49 @@ function selectRegion(region) {
 ========================================================= */
 
 function renderApartmentButtons() {
-    const apartments = uniqueValues(
-        state.records
-            .filter(record =>
-                record.region === state.selectedRegion
-            )
-            .map(record => record.apartment)
-    ).sort(naturalCompare);
+    const apartments =
+        uniqueValues(
+            state.records
+                .filter(record =>
+                    record.region ===
+                    state.selectedRegion
+                )
+                .map(record =>
+                    record.apartment
+                )
+        ).sort(naturalCompare);
 
     if (apartments.length === 0) {
         renderStatusMessage(
             "등록된 아파트가 없습니다."
         );
+
         return;
     }
 
     for (const apartment of apartments) {
-        const button = createSelectButton(apartment);
+        const button =
+            createSelectButton(apartment);
 
-        button.addEventListener("click", () => {
-            selectApartment(apartment);
-        });
+        button.addEventListener(
+            "click",
+            () => {
+                selectApartment(apartment);
+            }
+        );
 
-        elements.buttonGrid.appendChild(button);
+        elements.buttonGrid.appendChild(
+            button
+        );
     }
 }
 
 function selectApartment(apartment) {
     pushHistory();
 
-    state.selectedApartment = apartment;
+    state.selectedApartment =
+        apartment;
+
     state.selectedDong = "";
     state.view = "dongs";
 
@@ -717,15 +1054,26 @@ function renderDongButtons() {
     const apartmentRecords =
         getSelectedApartmentRecords();
 
-    const dongs = uniqueValues(
-        apartmentRecords.map(record =>
-            normalizeDongValue(record.dong)
+    const dongs =
+        uniqueValues(
+            apartmentRecords.map(record =>
+                normalizeDongValue(
+                    record.dong
+                )
+            )
+        ).sort(naturalCompare);
+
+    /*
+     * 동 값이 없고 모두 "전체"뿐이면
+     * 동 선택 화면 없이 바로 비밀번호 화면으로 이동합니다.
+     */
+    if (
+        dongs.length === 0 ||
+        (
+            dongs.length === 1 &&
+            dongs[0] === "전체"
         )
-    ).sort(naturalCompare);
-
-    if (dongs.length === 0) {
-        pushHistory();
-
+    ) {
         state.selectedDong = "전체";
         state.view = "cards";
 
@@ -734,17 +1082,24 @@ function renderDongButtons() {
     }
 
     for (const dong of dongs) {
-        const button = createSelectButton(
+        const label =
             dong === "전체"
                 ? "전체"
-                : formatDongLabel(dong)
+                : formatDongLabel(dong);
+
+        const button =
+            createSelectButton(label);
+
+        button.addEventListener(
+            "click",
+            () => {
+                selectDong(dong);
+            }
         );
 
-        button.addEventListener("click", () => {
-            selectDong(dong);
-        });
-
-        elements.buttonGrid.appendChild(button);
+        elements.buttonGrid.appendChild(
+            button
+        );
     }
 }
 
@@ -758,15 +1113,20 @@ function selectDong(dong) {
 }
 
 function normalizeDongValue(value) {
-    const cleaned = cleanText(value);
+    const cleaned =
+        cleanText(value);
 
     return cleaned || "전체";
 }
 
 function formatDongLabel(dong) {
-    const value = cleanText(dong);
+    const value =
+        cleanText(dong);
 
-    if (!value || value === "전체") {
+    if (
+        !value ||
+        value === "전체"
+    ) {
         return "전체";
     }
 
@@ -782,7 +1142,7 @@ function formatDongLabel(dong) {
 }
 
 /* =========================================================
-   공동비밀번호
+   공동비밀번호 표시
 ========================================================= */
 
 function renderCommonPassword() {
@@ -793,11 +1153,14 @@ function renderCommonPassword() {
         return;
     }
 
-    const commonPasswords = uniqueValues(
-        apartmentRecords
-            .map(record => record.commonPassword)
-            .filter(Boolean)
-    );
+    const commonPasswords =
+        uniqueValues(
+            apartmentRecords
+                .map(record =>
+                    record.commonPassword
+                )
+                .filter(Boolean)
+        );
 
     const commonValue =
         commonPasswords.length > 0
@@ -807,45 +1170,63 @@ function renderCommonPassword() {
     const title =
         document.createElement("div");
 
-    title.className = "common-pwd-title";
-    title.textContent = "<공동비번>";
+    title.className =
+        "common-pwd-title";
+
+    title.textContent =
+        "<공동비번>";
 
     const row =
         document.createElement("div");
 
-    row.className = "common-pwd-row";
+    row.className =
+        "common-pwd-row";
 
     const value =
         document.createElement("div");
 
-    value.className = "common-pwd-value";
-    value.textContent = commonValue;
+    value.className =
+        "common-pwd-value";
+
+    value.textContent =
+        commonValue;
 
     const editButton =
         document.createElement("button");
 
     editButton.type = "button";
-    editButton.className = "common-edit-btn";
-    editButton.textContent = "수정";
 
-    editButton.addEventListener("click", () => {
-        openCommonModal();
-    });
+    editButton.className =
+        "common-edit-btn";
 
-    row.append(value, editButton);
+    editButton.textContent =
+        "수정";
+
+    editButton.addEventListener(
+        "click",
+        openCommonModal
+    );
+
+    row.append(
+        value,
+        editButton
+    );
 
     elements.commonPwdStandalone.append(
         title,
         row
     );
 
-    elements.commonPwdStandalone.style.display = "block";
+    elements.commonPwdStandalone.style.display =
+        "block";
 }
 
 function getSelectedApartmentRecords() {
     return state.records.filter(record =>
-        record.region === state.selectedRegion &&
-        record.apartment === state.selectedApartment
+        record.region ===
+            state.selectedRegion &&
+        record.apartment ===
+            state.selectedApartment
     );
 }
 
@@ -854,48 +1235,71 @@ function getSelectedApartmentRecords() {
 ========================================================= */
 
 function renderPasswordCards() {
-    elements.stepContainer.style.display = "none";
-    elements.cardList.style.display = "flex";
+    elements.stepContainer.style.display =
+        "none";
 
-    let records = getSelectedApartmentRecords();
+    elements.cardList.style.display =
+        "flex";
+
+    let records =
+        getSelectedApartmentRecords();
 
     if (
         state.selectedDong &&
         state.selectedDong !== "전체"
     ) {
-        records = records.filter(record =>
-            normalizeDongValue(record.dong) ===
-                normalizeDongValue(state.selectedDong)
-        );
+        records =
+            records.filter(record =>
+                normalizeDongValue(
+                    record.dong
+                ) ===
+                normalizeDongValue(
+                    state.selectedDong
+                )
+            );
     }
 
-    records = [...records].sort((a, b) => {
-        const lineCompare =
-            naturalCompare(a.line, b.line);
+    records =
+        [...records].sort(
+            (a, b) => {
+                const lineCompare =
+                    naturalCompare(
+                        a.line,
+                        b.line
+                    );
 
-        if (lineCompare !== 0) {
-            return lineCompare;
-        }
+                if (lineCompare !== 0) {
+                    return lineCompare;
+                }
 
-        return Number(a.rowId) - Number(b.rowId);
-    });
+                return (
+                    Number(a.rowId) -
+                    Number(b.rowId)
+                );
+            }
+        );
 
     if (records.length === 0) {
         const message =
             document.createElement("div");
 
-        message.className = "status-msg";
+        message.className =
+            "status-msg";
+
         message.textContent =
             "등록된 비밀번호가 없습니다.";
 
-        elements.cardList.appendChild(message);
+        elements.cardList.appendChild(
+            message
+        );
+
         return;
     }
 
     for (const record of records) {
-        const card = createPasswordCard(record);
-
-        elements.cardList.appendChild(card);
+        elements.cardList.appendChild(
+            createPasswordCard(record)
+        );
     }
 }
 
@@ -909,29 +1313,35 @@ function createPasswordCard(record) {
     const lineTitle =
         document.createElement("div");
 
-    lineTitle.className = "line-info";
+    lineTitle.className =
+        "line-info";
+
     lineTitle.textContent =
         `<${formatLineLabel(record.line)}>`;
 
     const passwordContainer =
         document.createElement("div");
 
-    passwordContainer.className = "pwd-container";
+    passwordContainer.className =
+        "pwd-container";
 
     const passwordRow =
         document.createElement("div");
 
-    passwordRow.className = "pwd-row";
+    passwordRow.className =
+        "pwd-row";
 
     const passwordBox =
         document.createElement("div");
 
-    passwordBox.className = "pwd-box";
+    passwordBox.className =
+        "pwd-box";
 
     const passwordText =
         document.createElement("span");
 
-    passwordText.className = "pwd-highlight";
+    passwordText.className =
+        "pwd-highlight";
 
     const passwordList =
         splitPasswords(record.password);
@@ -941,43 +1351,73 @@ function createPasswordCard(record) {
             ? passwordList.join(" / ")
             : "등록된 비밀번호 없음";
 
-    passwordBox.appendChild(passwordText);
-    passwordRow.appendChild(passwordBox);
-    passwordContainer.appendChild(passwordRow);
+    passwordBox.appendChild(
+        passwordText
+    );
+
+    passwordRow.appendChild(
+        passwordBox
+    );
+
+    passwordContainer.appendChild(
+        passwordRow
+    );
 
     const footer =
         document.createElement("div");
 
-    footer.className = "card-footer";
+    footer.className =
+        "card-footer";
 
     const addButton =
         document.createElement("button");
 
     addButton.type = "button";
+
     addButton.className =
         "line-action-btn add-btn";
-    addButton.textContent = "➕ 추가";
 
-    addButton.addEventListener("click", () => {
-        openAddPwdModal(record.rowId);
-    });
+    addButton.textContent =
+        "➕ 추가";
 
-    footer.appendChild(addButton);
+    addButton.addEventListener(
+        "click",
+        () => {
+            openAddPwdModal(
+                record.rowId
+            );
+        }
+    );
+
+    footer.appendChild(
+        addButton
+    );
 
     if (passwordList.length > 0) {
         const deleteButton =
             document.createElement("button");
 
-        deleteButton.type = "button";
+        deleteButton.type =
+            "button";
+
         deleteButton.className =
             "line-action-btn delete-btn";
-        deleteButton.textContent = "🗑 삭제";
 
-        deleteButton.addEventListener("click", () => {
-            openDeletePwdModal(record.rowId);
-        });
+        deleteButton.textContent =
+            "🗑 삭제";
 
-        footer.appendChild(deleteButton);
+        deleteButton.addEventListener(
+            "click",
+            () => {
+                openDeletePwdModal(
+                    record.rowId
+                );
+            }
+        );
+
+        footer.appendChild(
+            deleteButton
+        );
     }
 
     card.append(
@@ -990,7 +1430,8 @@ function createPasswordCard(record) {
 }
 
 function formatLineLabel(line) {
-    const value = cleanText(line);
+    const value =
+        cleanText(line);
 
     if (!value) {
         return "공용";
@@ -1004,7 +1445,8 @@ function formatLineLabel(line) {
 }
 
 function splitPasswords(value) {
-    const text = cleanText(value);
+    const text =
+        cleanText(value);
 
     if (!text) {
         return [];
@@ -1012,14 +1454,18 @@ function splitPasswords(value) {
 
     return uniqueValues(
         text
-            .split(/\s*(?:\/|\||,|\r?\n)\s*/u)
-            .map(item => item.trim())
+            .split(
+                /\s*(?:\/|\||,|\r?\n)\s*/u
+            )
+            .map(item =>
+                item.trim()
+            )
             .filter(Boolean)
     );
 }
 
 /* =========================================================
-   공통 버튼·정렬 함수
+   공통 버튼 및 정렬
 ========================================================= */
 
 function createSelectButton(label) {
@@ -1035,11 +1481,15 @@ function createSelectButton(label) {
 }
 
 function uniqueValues(values) {
-    return [...new Set(
-        values
-            .map(value => cleanText(value))
-            .filter(Boolean)
-    )];
+    return [
+        ...new Set(
+            values
+                .map(value =>
+                    cleanText(value)
+                )
+                .filter(Boolean)
+        )
+    ];
 }
 
 function naturalCompare(a, b) {
@@ -1064,15 +1514,20 @@ function compareRegions(a, b) {
         "오피"
     ];
 
-    const aIndex = regionOrder.findIndex(name =>
-        cleanText(a).includes(name)
-    );
+    const aIndex =
+        regionOrder.findIndex(name =>
+            cleanText(a).includes(name)
+        );
 
-    const bIndex = regionOrder.findIndex(name =>
-        cleanText(b).includes(name)
-    );
+    const bIndex =
+        regionOrder.findIndex(name =>
+            cleanText(b).includes(name)
+        );
 
-    if (aIndex !== -1 && bIndex !== -1) {
+    if (
+        aIndex !== -1 &&
+        bIndex !== -1
+    ) {
         return aIndex - bIndex;
     }
 
@@ -1088,7 +1543,7 @@ function compareRegions(a, b) {
 }
 
 /* =========================================================
-   로딩·오류 상태
+   로딩 및 오류 표시
 ========================================================= */
 
 function renderLoading(message) {
@@ -1096,27 +1551,44 @@ function renderLoading(message) {
     elements.commonPwdStandalone.replaceChildren();
     elements.buttonGrid.replaceChildren();
 
-    elements.stepContainer.style.display = "block";
-    elements.cardList.style.display = "none";
-    elements.commonPwdStandalone.style.display = "none";
+    elements.stepContainer.style.display =
+        "block";
+
+    elements.cardList.style.display =
+        "none";
+
+    elements.commonPwdStandalone.style.display =
+        "none";
 
     const wrapper =
         document.createElement("div");
 
-    wrapper.className = "status-msg";
+    wrapper.className =
+        "status-msg";
+
+    wrapper.style.gridColumn =
+        "1 / -1";
 
     const spinner =
         document.createElement("span");
 
-    spinner.className = "spinner";
+    spinner.className =
+        "spinner";
 
     const text =
         document.createElement("span");
 
-    text.textContent = message;
+    text.textContent =
+        message;
 
-    wrapper.append(spinner, text);
-    elements.buttonGrid.appendChild(wrapper);
+    wrapper.append(
+        spinner,
+        text
+    );
+
+    elements.buttonGrid.appendChild(
+        wrapper
+    );
 }
 
 function renderStatusMessage(message) {
@@ -1125,10 +1597,18 @@ function renderStatusMessage(message) {
     const status =
         document.createElement("div");
 
-    status.className = "status-msg";
-    status.textContent = message;
+    status.className =
+        "status-msg";
 
-    elements.buttonGrid.appendChild(status);
+    status.style.gridColumn =
+        "1 / -1";
+
+    status.textContent =
+        message;
+
+    elements.buttonGrid.appendChild(
+        status
+    );
 }
 
 function renderError(title, detail = "") {
@@ -1137,93 +1617,111 @@ function renderError(title, detail = "") {
     const wrapper =
         document.createElement("div");
 
-    wrapper.className = "status-msg";
+    wrapper.className =
+        "status-msg";
+
+    wrapper.style.gridColumn =
+        "1 / -1";
 
     const titleElement =
         document.createElement("strong");
 
-    titleElement.textContent = title;
+    titleElement.textContent =
+        title;
 
-    wrapper.appendChild(titleElement);
+    wrapper.appendChild(
+        titleElement
+    );
 
     if (detail) {
         const detailElement =
             document.createElement("div");
 
-        detailElement.style.marginTop = "7px";
-        detailElement.style.fontSize = "0.88rem";
-        detailElement.textContent = detail;
+        detailElement.style.marginTop =
+            "7px";
 
-        wrapper.appendChild(detailElement);
+        detailElement.style.fontSize =
+            "0.88rem";
+
+        detailElement.textContent =
+            detail;
+
+        wrapper.appendChild(
+            detailElement
+        );
     }
 
-    elements.buttonGrid.appendChild(wrapper);
+    elements.buttonGrid.appendChild(
+        wrapper
+    );
 }
-
-/* =========================================================
-   2/2에서 계속
-   - 서버 통신
-   - 공동비밀번호 수정
-   - 비밀번호 추가
-   - 비밀번호 삭제
-   - GPS 최근 위치 및 거리 계산
-   - 모달·토스트 처리
-========================================================= */
-
-/* =========================================================
-   넘버원 김포B 공비 V2
-   script.js 2/2
-========================================================= */
 
 /* =========================================================
    서버 통신
 ========================================================= */
 
-async function requestApi(action, payload = {}) {
+async function requestApi(
+    action,
+    payload = {}
+) {
     if (
         !API_URL ||
         API_URL.includes("여기에_") ||
         !/^https?:\/\//i.test(API_URL)
     ) {
         throw new Error(
-            "script.js 상단의 API_URL을 Apps Script 배포 주소로 변경하세요."
+            "script.js 맨 위 API_URL에 Apps Script /exec 주소를 입력하세요."
         );
     }
 
-    const isReadRequest = action === "getData";
+    const isReadRequest =
+        action === "getData";
 
     let response;
 
     if (isReadRequest) {
-        const url = new URL(API_URL);
+        const url =
+            new URL(API_URL);
 
-        url.searchParams.set("action", action);
-        url.searchParams.set("_t", String(Date.now()));
+        url.searchParams.set(
+            "action",
+            action
+        );
 
-        response = await fetch(url.toString(), {
-            method: "GET",
-            cache: "no-store",
-            redirect: "follow"
-        });
+        url.searchParams.set(
+            "_t",
+            String(Date.now())
+        );
+
+        response = await fetch(
+            url.toString(),
+            {
+                method: "GET",
+                cache: "no-store",
+                redirect: "follow"
+            }
+        );
 
     } else {
-        /*
-         * text/plain으로 전송하면 GitHub Pages 등 외부 사이트에서
-         * Apps Script 호출 시 불필요한 OPTIONS 요청을 줄일 수 있습니다.
-         */
-        response = await fetch(API_URL, {
-            method: "POST",
-            headers: {
-                "Content-Type":
-                    "text/plain;charset=utf-8"
-            },
-            body: JSON.stringify({
-                action,
-                ...payload
-            }),
-            cache: "no-store",
-            redirect: "follow"
-        });
+        response = await fetch(
+            API_URL,
+            {
+                method: "POST",
+
+                headers: {
+                    "Content-Type":
+                        "text/plain;charset=utf-8"
+                },
+
+                body: JSON.stringify({
+                    action,
+                    ...payload
+                }),
+
+                cache: "no-store",
+                redirect: "follow"
+            }
+        );
     }
 
     if (!response.ok) {
@@ -1232,18 +1730,26 @@ async function requestApi(action, payload = {}) {
         );
     }
 
-    const responseText = await response.text();
+    const responseText =
+        await response.text();
 
     if (!responseText) {
-        throw new Error("서버 응답이 비어 있습니다.");
+        throw new Error(
+            "서버 응답이 비어 있습니다."
+        );
     }
 
     let result;
 
     try {
-        result = JSON.parse(responseText);
+        result =
+            JSON.parse(responseText);
+
     } catch (error) {
-        console.error("JSON 변환 실패:", responseText);
+        console.error(
+            "JSON 변환 실패:",
+            responseText
+        );
 
         throw new Error(
             "서버에서 올바르지 않은 응답을 받았습니다."
@@ -1274,19 +1780,28 @@ function openCommonModal() {
         getSelectedApartmentRecords();
 
     if (apartmentRecords.length === 0) {
-        showToast("수정할 아파트 정보가 없습니다.");
+        showToast(
+            "수정할 아파트 정보가 없습니다."
+        );
+
         return;
     }
 
-    const currentPasswords = uniqueValues(
-        apartmentRecords
-            .map(record => record.commonPassword)
-            .filter(Boolean)
-    );
+    const currentPasswords =
+        uniqueValues(
+            apartmentRecords
+                .map(record =>
+                    record.commonPassword
+                )
+                .filter(Boolean)
+        );
 
     state.currentCommonEdit = {
-        region: state.selectedRegion,
-        apartment: state.selectedApartment
+        region:
+            state.selectedRegion,
+
+        apartment:
+            state.selectedApartment
     };
 
     elements.commonModalAptLabel.textContent =
@@ -1295,30 +1810,44 @@ function openCommonModal() {
     elements.formCommonPwdValue.value =
         currentPasswords.join(" / ");
 
-    openModal(elements.commonEditorModal);
+    openModal(
+        elements.commonEditorModal
+    );
 
-    window.setTimeout(() => {
-        elements.formCommonPwdValue.focus();
-        elements.formCommonPwdValue.select();
-    }, 100);
+    window.setTimeout(
+        () => {
+            elements.formCommonPwdValue.focus();
+            elements.formCommonPwdValue.select();
+        },
+        100
+    );
 }
 
 function closeCommonModal() {
-    state.currentCommonEdit = null;
+    state.currentCommonEdit =
+        null;
 
-    elements.formCommonPwdValue.value = "";
+    elements.formCommonPwdValue.value =
+        "";
 
-    closeModal(elements.commonEditorModal);
+    closeModal(
+        elements.commonEditorModal
+    );
 }
 
 async function submitCommonPwdForm() {
     if (!state.currentCommonEdit) {
-        showToast("수정할 아파트를 다시 선택해주세요.");
+        showToast(
+            "수정할 아파트를 다시 선택해주세요."
+        );
+
         return;
     }
 
     const commonPassword =
-        cleanText(elements.formCommonPwdValue.value);
+        cleanText(
+            elements.formCommonPwdValue.value
+        );
 
     const region =
         state.currentCommonEdit.region;
@@ -1333,11 +1862,14 @@ async function submitCommonPwdForm() {
     );
 
     try {
-        await requestApi("updateCommonPassword", {
-            region,
-            apartment,
-            commonPassword
-        });
+        await requestApi(
+            "updateCommonPassword",
+            {
+                region,
+                apartment,
+                commonPassword
+            }
+        );
 
         for (const record of state.records) {
             if (
@@ -1349,12 +1881,16 @@ async function submitCommonPwdForm() {
             }
         }
 
-        saveRecordsToCache(state.records);
+        saveRecordsToCache(
+            state.records
+        );
 
         closeCommonModal();
         renderCurrentView();
 
-        showToast("공동비밀번호를 저장했습니다.");
+        showToast(
+            "공동비밀번호를 저장했습니다."
+        );
 
     } catch (error) {
         console.error(
@@ -1380,10 +1916,14 @@ async function submitCommonPwdForm() {
 ========================================================= */
 
 function openAddPwdModal(rowId) {
-    const record = findRecordByRowId(rowId);
+    const record =
+        findRecordByRowId(rowId);
 
     if (!record) {
-        showToast("해당 비밀번호 정보를 찾지 못했습니다.");
+        showToast(
+            "해당 비밀번호 정보를 찾지 못했습니다."
+        );
+
         return;
     }
 
@@ -1396,59 +1936,96 @@ function openAddPwdModal(rowId) {
     elements.addPwdInfo.textContent =
         createRecordInfoText(record);
 
-    elements.addPwdValue.value = "";
+    elements.addPwdValue.value =
+        "";
 
-    openModal(elements.addPwdModal);
+    openModal(
+        elements.addPwdModal
+    );
 
-    window.setTimeout(() => {
-        elements.addPwdValue.focus();
-    }, 100);
+    window.setTimeout(
+        () => {
+            elements.addPwdValue.focus();
+        },
+        100
+    );
 }
 
 function closeAddPwdModal() {
-    elements.addPwdRowId.value = "";
-    elements.addPwdInfo.textContent = "";
-    elements.addPwdValue.value = "";
+    elements.addPwdRowId.value =
+        "";
 
-    closeModal(elements.addPwdModal);
+    elements.addPwdInfo.textContent =
+        "";
+
+    elements.addPwdValue.value =
+        "";
+
+    closeModal(
+        elements.addPwdModal
+    );
 }
 
 async function submitAddPwd() {
     const rowId =
-        cleanText(elements.addPwdRowId.value);
+        cleanText(
+            elements.addPwdRowId.value
+        );
 
     const newPassword =
-        cleanText(elements.addPwdValue.value);
+        cleanText(
+            elements.addPwdValue.value
+        );
 
     if (!rowId) {
-        showToast("추가할 행을 찾지 못했습니다.");
+        showToast(
+            "추가할 행을 찾지 못했습니다."
+        );
+
         return;
     }
 
     if (!newPassword) {
-        showToast("추가할 비밀번호를 입력해주세요.");
+        showToast(
+            "추가할 비밀번호를 입력해주세요."
+        );
+
         elements.addPwdValue.focus();
+
         return;
     }
 
-    const record = findRecordByRowId(rowId);
+    const record =
+        findRecordByRowId(rowId);
 
     if (!record) {
-        showToast("해당 데이터를 찾지 못했습니다.");
+        showToast(
+            "해당 데이터를 찾지 못했습니다."
+        );
+
         return;
     }
 
     const currentPasswords =
-        splitPasswords(record.password);
+        splitPasswords(
+            record.password
+        );
 
     const duplicateExists =
         currentPasswords.some(password =>
-            normalizePasswordForCompare(password) ===
-            normalizePasswordForCompare(newPassword)
+            normalizePasswordForCompare(
+                password
+            ) ===
+            normalizePasswordForCompare(
+                newPassword
+            )
         );
 
     if (duplicateExists) {
-        showToast("이미 등록된 비밀번호입니다.");
+        showToast(
+            "이미 등록된 비밀번호입니다."
+        );
+
         return;
     }
 
@@ -1460,10 +2037,13 @@ async function submitAddPwd() {
 
     try {
         const response =
-            await requestApi("addPassword", {
-                rowId,
-                password: newPassword
-            });
+            await requestApi(
+                "addPassword",
+                {
+                    rowId,
+                    password: newPassword
+                }
+            );
 
         const serverPassword =
             cleanText(
@@ -1473,15 +2053,21 @@ async function submitAddPwd() {
 
         record.password =
             serverPassword ||
-            [...currentPasswords, newPassword]
-                .join(" / ");
+            [
+                ...currentPasswords,
+                newPassword
+            ].join(" / ");
 
-        saveRecordsToCache(state.records);
+        saveRecordsToCache(
+            state.records
+        );
 
         closeAddPwdModal();
         renderCurrentView();
 
-        showToast("비밀번호를 추가했습니다.");
+        showToast(
+            "비밀번호를 추가했습니다."
+        );
 
     } catch (error) {
         console.error(
@@ -1507,18 +2093,27 @@ async function submitAddPwd() {
 ========================================================= */
 
 function openDeletePwdModal(rowId) {
-    const record = findRecordByRowId(rowId);
+    const record =
+        findRecordByRowId(rowId);
 
     if (!record) {
-        showToast("해당 비밀번호 정보를 찾지 못했습니다.");
+        showToast(
+            "해당 비밀번호 정보를 찾지 못했습니다."
+        );
+
         return;
     }
 
     const passwords =
-        splitPasswords(record.password);
+        splitPasswords(
+            record.password
+        );
 
     if (passwords.length === 0) {
-        showToast("삭제할 비밀번호가 없습니다.");
+        showToast(
+            "삭제할 비밀번호가 없습니다."
+        );
+
         return;
     }
 
@@ -1537,47 +2132,68 @@ function openDeletePwdModal(rowId) {
         const button =
             document.createElement("button");
 
-        button.type = "button";
-        button.className = "delete-pwd-btn";
-        button.textContent = password;
+        button.type =
+            "button";
 
-        button.addEventListener("click", () => {
-            confirmDeletePassword(
-                record.rowId,
-                password
-            );
-        });
+        button.className =
+            "delete-pwd-btn";
+
+        button.textContent =
+            password;
+
+        button.addEventListener(
+            "click",
+            () => {
+                confirmDeletePassword(
+                    record.rowId,
+                    password
+                );
+            }
+        );
 
         elements.deletePwdButtons.appendChild(
             button
         );
     }
 
-    openModal(elements.deletePwdModal);
+    openModal(
+        elements.deletePwdModal
+    );
 }
 
 function closeDeletePwdModal() {
-    elements.deletePwdRowId.value = "";
-    elements.deletePwdInfo.textContent = "";
+    elements.deletePwdRowId.value =
+        "";
+
+    elements.deletePwdInfo.textContent =
+        "";
+
     elements.deletePwdButtons.replaceChildren();
 
-    closeModal(elements.deletePwdModal);
+    closeModal(
+        elements.deletePwdModal
+    );
 }
 
 async function confirmDeletePassword(
     rowId,
     password
 ) {
-    const record = findRecordByRowId(rowId);
+    const record =
+        findRecordByRowId(rowId);
 
     if (!record) {
-        showToast("해당 데이터를 찾지 못했습니다.");
+        showToast(
+            "해당 데이터를 찾지 못했습니다."
+        );
+
         return;
     }
 
-    const shouldDelete = window.confirm(
-        `"${password}" 비밀번호를 삭제할까요?`
-    );
+    const shouldDelete =
+        window.confirm(
+            `"${password}" 비밀번호를 삭제할까요?`
+        );
 
     if (!shouldDelete) {
         return;
@@ -1591,14 +2207,19 @@ async function confirmDeletePassword(
 
     try {
         const response =
-            await requestApi("deletePassword", {
-                rowId,
-                password
-            });
+            await requestApi(
+                "deletePassword",
+                {
+                    rowId,
+                    password
+                }
+            );
 
         const serverPassword =
             response?.password !== undefined
-                ? cleanText(response.password)
+                ? cleanText(
+                    response.password
+                )
                 : response?.data?.password !== undefined
                     ? cleanText(
                         response.data.password
@@ -1606,24 +2227,35 @@ async function confirmDeletePassword(
                     : null;
 
         if (serverPassword !== null) {
-            record.password = serverPassword;
+            record.password =
+                serverPassword;
 
         } else {
             record.password =
-                splitPasswords(record.password)
+                splitPasswords(
+                    record.password
+                )
                     .filter(item =>
-                        normalizePasswordForCompare(item) !==
-                        normalizePasswordForCompare(password)
+                        normalizePasswordForCompare(
+                            item
+                        ) !==
+                        normalizePasswordForCompare(
+                            password
+                        )
                     )
                     .join(" / ");
         }
 
-        saveRecordsToCache(state.records);
+        saveRecordsToCache(
+            state.records
+        );
 
         closeDeletePwdModal();
         renderCurrentView();
 
-        showToast("비밀번호를 삭제했습니다.");
+        showToast(
+            "비밀번호를 삭제했습니다."
+        );
 
     } catch (error) {
         console.error(
@@ -1645,25 +2277,35 @@ async function confirmDeletePassword(
 }
 
 /* =========================================================
-   데이터 검색 및 표시 보조
+   데이터 검색 보조
 ========================================================= */
 
 function findRecordByRowId(rowId) {
-    const targetId = cleanText(rowId);
+    const targetId =
+        cleanText(rowId);
 
-    return state.records.find(record =>
-        cleanText(record.rowId) === targetId
-    ) || null;
+    return (
+        state.records.find(record =>
+            cleanText(record.rowId) ===
+            targetId
+        ) || null
+    );
 }
 
 function createRecordInfoText(record) {
     const parts = [
         record.region,
         record.apartment,
+
         formatDongLabel(
-            normalizeDongValue(record.dong)
+            normalizeDongValue(
+                record.dong
+            )
         ),
-        formatLineLabel(record.line)
+
+        formatLineLabel(
+            record.line
+        )
     ].filter(Boolean);
 
     return parts.join(" · ");
@@ -1682,13 +2324,16 @@ function normalizePasswordForCompare(value) {
 function startGps() {
     loadLastLocation();
 
-    if (!("geolocation" in navigator)) {
+    if (
+        !("geolocation" in navigator)
+    ) {
         updateGpsStatus(
             "🔴 GPS 미지원",
             "error"
         );
 
         renderGpsButtons();
+
         return;
     }
 
@@ -1700,7 +2345,7 @@ function startGps() {
     );
 
     /*
-     * 먼저 빠르게 현재 위치 요청
+     * 먼저 빠른 위치를 요청합니다.
      */
     navigator.geolocation.getCurrentPosition(
         handleGpsSuccess,
@@ -1713,7 +2358,7 @@ function startGps() {
     );
 
     /*
-     * 이후 정밀 위치를 일정 시간 동안 감시
+     * 이후 정밀 위치를 최대 30초 동안 감시합니다.
      */
     state.gpsWatchId =
         navigator.geolocation.watchPosition(
@@ -1726,7 +2371,9 @@ function startGps() {
             }
         );
 
-    clearTimeout(state.gpsStopTimer);
+    clearTimeout(
+        state.gpsStopTimer
+    );
 
     state.gpsStopTimer =
         window.setTimeout(
@@ -1744,11 +2391,16 @@ function stopGpsWatch() {
             state.gpsWatchId
         );
 
-        state.gpsWatchId = null;
+        state.gpsWatchId =
+            null;
     }
 
-    clearTimeout(state.gpsStopTimer);
-    state.gpsStopTimer = null;
+    clearTimeout(
+        state.gpsStopTimer
+    );
+
+    state.gpsStopTimer =
+        null;
 }
 
 function handleGpsSuccess(position) {
@@ -1757,13 +2409,19 @@ function handleGpsSuccess(position) {
     }
 
     const latitude =
-        Number(position.coords.latitude);
+        Number(
+            position.coords.latitude
+        );
 
     const longitude =
-        Number(position.coords.longitude);
+        Number(
+            position.coords.longitude
+        );
 
     const accuracy =
-        Number(position.coords.accuracy);
+        Number(
+            position.coords.accuracy
+        );
 
     if (
         !Number.isFinite(latitude) ||
@@ -1775,25 +2433,30 @@ function handleGpsSuccess(position) {
     const newLocation = {
         latitude,
         longitude,
+
         accuracy:
             Number.isFinite(accuracy)
                 ? accuracy
                 : null,
+
         timestamp:
             Number(position.timestamp) ||
             Date.now()
     };
 
-    const shouldReplace =
+    if (
         shouldUseNewLocation(
             state.currentLocation,
             newLocation
+        )
+    ) {
+        state.currentLocation =
+            newLocation;
+
+        saveLastLocation(
+            newLocation
         );
 
-    if (shouldReplace) {
-        state.currentLocation = newLocation;
-
-        saveLastLocation(newLocation);
         renderGpsButtons();
     }
 
@@ -1818,16 +2481,24 @@ function shouldUseNewLocation(
     }
 
     const currentAccuracy =
-        Number(currentLocation.accuracy);
+        Number(
+            currentLocation.accuracy
+        );
 
     const newAccuracy =
-        Number(newLocation.accuracy);
+        Number(
+            newLocation.accuracy
+        );
 
     const currentTime =
-        Number(currentLocation.timestamp) || 0;
+        Number(
+            currentLocation.timestamp
+        ) || 0;
 
     const newTime =
-        Number(newLocation.timestamp) || Date.now();
+        Number(
+            newLocation.timestamp
+        ) || Date.now();
 
     if (
         Number.isFinite(newAccuracy) &&
@@ -1844,7 +2515,10 @@ function shouldUseNewLocation(
         return true;
     }
 
-    return newTime - currentTime > 15000;
+    return (
+        newTime - currentTime >
+        15000
+    );
 }
 
 function handleGpsInitialError(error) {
@@ -1860,6 +2534,7 @@ function handleGpsInitialError(error) {
         );
 
         renderGpsButtons();
+
         return;
     }
 
@@ -1878,7 +2553,8 @@ function handleGpsWatchError(error) {
 }
 
 function updateGpsErrorStatus(error) {
-    const errorCode = Number(error?.code);
+    const errorCode =
+        Number(error?.code);
 
     if (errorCode === 1) {
         updateGpsStatus(
@@ -1938,27 +2614,34 @@ function updateGpsAccuracyStatus(accuracy) {
     }
 }
 
-function updateGpsStatus(text, status = "") {
-    elements.gpsStatusBadge.textContent = text;
-    elements.gpsStatusBadge.dataset.status = status;
+function updateGpsStatus(
+    text,
+    status = ""
+) {
+    elements.gpsStatusBadge.textContent =
+        text;
+
+    elements.gpsStatusBadge.dataset.status =
+        status;
 }
 
 /* =========================================================
-   최근 위치 저장
+   최근 GPS 위치 저장
 ========================================================= */
 
 function loadLastLocation() {
     try {
         const saved =
             localStorage.getItem(
-                APP_CONFIG.LOCATION_KEY
+                APP_CONFIG.LAST_LOCATION_KEY
             );
 
         if (!saved) {
             return;
         }
 
-        const parsed = JSON.parse(saved);
+        const parsed =
+            JSON.parse(saved);
 
         const latitude =
             Number(parsed.latitude);
@@ -1970,8 +2653,10 @@ function loadLastLocation() {
             Number(parsed.timestamp);
 
         if (
-            !Number.isFinite(latitude) ||
-            !Number.isFinite(longitude) ||
+            !isValidCoordinate(
+                latitude,
+                longitude
+            ) ||
             !Number.isFinite(timestamp)
         ) {
             return;
@@ -1979,24 +2664,29 @@ function loadLastLocation() {
 
         if (
             Date.now() - timestamp >
-            APP_CONFIG.LOCATION_MAX_AGE
+            APP_CONFIG.LAST_LOCATION_MAX_AGE
         ) {
             localStorage.removeItem(
-                APP_CONFIG.LOCATION_KEY
+                APP_CONFIG.LAST_LOCATION_KEY
             );
 
             return;
         }
 
+        const parsedAccuracy =
+            Number(parsed.accuracy);
+
         state.currentLocation = {
             latitude,
             longitude,
+
             accuracy:
                 Number.isFinite(
-                    Number(parsed.accuracy)
+                    parsedAccuracy
                 )
-                    ? Number(parsed.accuracy)
+                    ? parsedAccuracy
                     : null,
+
             timestamp
         };
 
@@ -2007,7 +2697,7 @@ function loadLastLocation() {
         );
 
         localStorage.removeItem(
-            APP_CONFIG.LOCATION_KEY
+            APP_CONFIG.LAST_LOCATION_KEY
         );
     }
 }
@@ -2015,9 +2705,10 @@ function loadLastLocation() {
 function saveLastLocation(location) {
     try {
         localStorage.setItem(
-            APP_CONFIG.LOCATION_KEY,
+            APP_CONFIG.LAST_LOCATION_KEY,
             JSON.stringify(location)
         );
+
     } catch (error) {
         console.error(
             "최근 위치 저장 실패:",
@@ -2033,11 +2724,38 @@ function saveLastLocation(location) {
 function renderGpsButtons() {
     elements.gpsButtons.replaceChildren();
 
+    if (!state.currentLocation) {
+        renderGpsPlaceholderButtons(
+            "위치 확인 중"
+        );
+
+        return;
+    }
+
+    if (state.records.length === 0) {
+        renderGpsPlaceholderButtons(
+            "데이터 확인 중"
+        );
+
+        return;
+    }
+
+    if (!state.locationsLoaded) {
+        renderGpsPlaceholderButtons(
+            "좌표 확인 중"
+        );
+
+        return;
+    }
+
     if (
-        state.records.length === 0 ||
-        !state.currentLocation
+        state.locationsError ||
+        state.locationMap.size === 0
     ) {
-        renderGpsPlaceholderButtons();
+        renderGpsPlaceholderButtons(
+            "좌표 오류"
+        );
+
         return;
     }
 
@@ -2052,7 +2770,7 @@ function renderGpsButtons() {
 
     if (nearbyApartments.length === 0) {
         renderGpsPlaceholderButtons(
-            "좌표 없음"
+            "이름 매칭 없음"
         );
 
         return;
@@ -2062,11 +2780,19 @@ function renderGpsButtons() {
         const button =
             document.createElement("button");
 
-        button.type = "button";
-        button.className = "gps-btn";
+        button.type =
+            "button";
+
+        button.className =
+            "gps-btn";
+
+        button.style.whiteSpace =
+            "pre-line";
 
         const distanceText =
-            formatDistance(item.distance);
+            formatDistance(
+                item.distance
+            );
 
         button.textContent =
             `${item.apartment}\n${distanceText}`;
@@ -2074,22 +2800,26 @@ function renderGpsButtons() {
         button.title =
             `${item.region} · ${item.apartment} · ${distanceText}`;
 
-        button.addEventListener("click", () => {
-            openApartmentFromGps(item);
-        });
+        button.addEventListener(
+            "click",
+            () => {
+                openApartmentFromGps(
+                    item
+                );
+            }
+        );
 
-        elements.gpsButtons.appendChild(button);
+        elements.gpsButtons.appendChild(
+            button
+        );
     }
 
     while (
         elements.gpsButtons.children.length <
         APP_CONFIG.GPS_BUTTON_COUNT
     ) {
-        const emptyButton =
-            createGpsPlaceholderButton();
-
         elements.gpsButtons.appendChild(
-            emptyButton
+            createGpsPlaceholderButton("")
         );
     }
 }
@@ -2105,79 +2835,161 @@ function renderGpsPlaceholderButtons(
         index += 1
     ) {
         elements.gpsButtons.appendChild(
-            createGpsPlaceholderButton(text)
+            createGpsPlaceholderButton(
+                text
+            )
         );
     }
 }
 
 function createGpsPlaceholderButton(
-    text = "위치 확인 중"
+    text = ""
 ) {
     const button =
         document.createElement("button");
 
-    button.type = "button";
-    button.className = "gps-btn";
-    button.disabled = true;
-    button.textContent = text;
+    button.type =
+        "button";
+
+    button.className =
+        "gps-btn";
+
+    button.disabled =
+        true;
+
+    button.textContent =
+        text;
 
     return button;
 }
 
+/*
+ * 각 아파트의 모든 좌표와 사용자 위치를 비교해
+ * 가장 짧은 거리를 해당 아파트의 거리로 사용합니다.
+ */
 function getNearbyApartments(
     currentLatitude,
     currentLongitude
 ) {
-    const apartmentMap = new Map();
+    const uniqueApartments =
+        new Map();
 
     for (const record of state.records) {
+        const normalizedName =
+            normalizeApartmentName(
+                record.apartment
+            );
+
         if (
-            !Number.isFinite(record.latitude) ||
-            !Number.isFinite(record.longitude)
+            !normalizedName ||
+            uniqueApartments.has(
+                normalizedName
+            )
         ) {
             continue;
         }
 
-        const key =
-            `${record.region}|||${record.apartment}`;
+        uniqueApartments.set(
+            normalizedName,
+            {
+                region:
+                    record.region,
 
-        if (apartmentMap.has(key)) {
+                apartment:
+                    record.apartment
+            }
+        );
+    }
+
+    const results = [];
+
+    for (
+        const [
+            normalizedName,
+            apartmentInfo
+        ] of uniqueApartments
+    ) {
+        const locationEntry =
+            state.locationMap.get(
+                normalizedName
+            );
+
+        if (!locationEntry) {
             continue;
         }
 
-        const distance =
-            calculateDistanceMeters(
-                currentLatitude,
-                currentLongitude,
-                record.latitude,
-                record.longitude
-            );
+        let shortestDistance =
+            Infinity;
 
-        apartmentMap.set(key, {
-            region: record.region,
-            apartment: record.apartment,
-            latitude: record.latitude,
-            longitude: record.longitude,
-            distance
+        for (
+            const coordinate
+            of locationEntry.coordinates
+        ) {
+            const distance =
+                calculateDistanceMeters(
+                    currentLatitude,
+                    currentLongitude,
+                    coordinate.latitude,
+                    coordinate.longitude
+                );
+
+            if (
+                distance <
+                shortestDistance
+            ) {
+                shortestDistance =
+                    distance;
+            }
+        }
+
+        if (
+            !Number.isFinite(
+                shortestDistance
+            )
+        ) {
+            continue;
+        }
+
+        results.push({
+            region:
+                apartmentInfo.region,
+
+            apartment:
+                apartmentInfo.apartment,
+
+            distance:
+                shortestDistance
         });
     }
 
-    return [...apartmentMap.values()]
-        .sort((a, b) =>
-            a.distance - b.distance
-        );
+    return results.sort(
+        (a, b) =>
+            a.distance -
+            b.distance
+    );
 }
 
 function openApartmentFromGps(item) {
     state.history = [];
 
-    state.selectedRegion = item.region;
-    state.selectedApartment = item.apartment;
-    state.selectedDong = "";
-    state.view = "dongs";
+    state.selectedRegion =
+        item.region;
+
+    state.selectedApartment =
+        item.apartment;
+
+    state.selectedDong =
+        "";
+
+    state.view =
+        "dongs";
 
     renderCurrentView();
 }
+
+/* =========================================================
+   거리 계산
+========================================================= */
 
 function calculateDistanceMeters(
     latitude1,
@@ -2185,32 +2997,44 @@ function calculateDistanceMeters(
     latitude2,
     longitude2
 ) {
-    const earthRadius = 6371000;
+    const earthRadius =
+        6371000;
 
     const lat1 =
-        degreesToRadians(latitude1);
+        degreesToRadians(
+            latitude1
+        );
 
     const lat2 =
-        degreesToRadians(latitude2);
+        degreesToRadians(
+            latitude2
+        );
 
     const deltaLatitude =
         degreesToRadians(
-            latitude2 - latitude1
+            latitude2 -
+            latitude1
         );
 
     const deltaLongitude =
         degreesToRadians(
-            longitude2 - longitude1
+            longitude2 -
+            longitude1
         );
 
     const a =
-        Math.sin(deltaLatitude / 2) ** 2 +
+        Math.sin(
+            deltaLatitude / 2
+        ) ** 2 +
         Math.cos(lat1) *
         Math.cos(lat2) *
-        Math.sin(deltaLongitude / 2) ** 2;
+        Math.sin(
+            deltaLongitude / 2
+        ) ** 2;
 
     const c =
-        2 * Math.atan2(
+        2 *
+        Math.atan2(
             Math.sqrt(a),
             Math.sqrt(1 - a)
         );
@@ -2219,7 +3043,10 @@ function calculateDistanceMeters(
 }
 
 function degreesToRadians(degrees) {
-    return degrees * (Math.PI / 180);
+    return (
+        degrees *
+        (Math.PI / 180)
+    );
 }
 
 function formatDistance(distance) {
@@ -2250,7 +3077,9 @@ function initializeModalEvents() {
             "click",
             event => {
                 if (event.target === modal) {
-                    closeModalByElement(modal);
+                    closeModalByElement(
+                        modal
+                    );
                 }
             }
         );
@@ -2291,8 +3120,11 @@ function openModal(modal) {
         return;
     }
 
-    modal.style.display = "flex";
-    document.body.style.overflow = "hidden";
+    modal.style.display =
+        "flex";
+
+    document.body.style.overflow =
+        "hidden";
 }
 
 function closeModal(modal) {
@@ -2300,7 +3132,8 @@ function closeModal(modal) {
         return;
     }
 
-    modal.style.display = "none";
+    modal.style.display =
+        "none";
 
     const anyModalOpen = [
         elements.commonEditorModal,
@@ -2311,18 +3144,28 @@ function closeModal(modal) {
     );
 
     if (!anyModalOpen) {
-        document.body.style.overflow = "";
+        document.body.style.overflow =
+            "";
     }
 }
 
 function closeModalByElement(modal) {
-    if (modal === elements.commonEditorModal) {
+    if (
+        modal ===
+        elements.commonEditorModal
+    ) {
         closeCommonModal();
 
-    } else if (modal === elements.addPwdModal) {
+    } else if (
+        modal ===
+        elements.addPwdModal
+    ) {
         closeAddPwdModal();
 
-    } else if (modal === elements.deletePwdModal) {
+    } else if (
+        modal ===
+        elements.deletePwdModal
+    ) {
         closeDeletePwdModal();
     }
 }
@@ -2334,12 +3177,15 @@ function closeTopModal() {
         elements.commonEditorModal
     ];
 
-    const openedModal = modals.find(modal =>
-        modal.style.display === "flex"
-    );
+    const openedModal =
+        modals.find(modal =>
+            modal.style.display === "flex"
+        );
 
     if (openedModal) {
-        closeModalByElement(openedModal);
+        closeModalByElement(
+            openedModal
+        );
     }
 }
 
@@ -2353,29 +3199,38 @@ function setModalBusy(
     }
 
     const buttons =
-        modal.querySelectorAll("button");
+        modal.querySelectorAll(
+            "button"
+        );
 
     for (const button of buttons) {
         if (isBusy) {
-            if (!button.dataset.originalText) {
+            if (
+                !button.dataset.originalText
+            ) {
                 button.dataset.originalText =
                     button.textContent;
             }
 
-            button.disabled = true;
+            button.disabled =
+                true;
 
             if (
                 button.classList.contains(
                     "btn-submit"
                 )
             ) {
-                button.textContent = busyText;
+                button.textContent =
+                    busyText;
             }
 
         } else {
-            button.disabled = false;
+            button.disabled =
+                false;
 
-            if (button.dataset.originalText) {
+            if (
+                button.dataset.originalText
+            ) {
                 button.textContent =
                     button.dataset.originalText;
 
@@ -2385,10 +3240,13 @@ function setModalBusy(
     }
 
     const inputs =
-        modal.querySelectorAll("input");
+        modal.querySelectorAll(
+            "input"
+        );
 
     for (const input of inputs) {
-        input.disabled = isBusy;
+        input.disabled =
+            isBusy;
     }
 }
 
@@ -2397,23 +3255,33 @@ function setModalBusy(
 ========================================================= */
 
 function showToast(message) {
-    const text = cleanText(message);
+    const text =
+        cleanText(message);
 
     if (!text) {
         return;
     }
 
-    clearTimeout(state.toastTimer);
+    clearTimeout(
+        state.toastTimer
+    );
 
-    elements.toast.textContent = text;
-    elements.toast.classList.add("show");
+    elements.toast.textContent =
+        text;
+
+    elements.toast.classList.add(
+        "show"
+    );
 
     state.toastTimer =
-        window.setTimeout(() => {
-            elements.toast.classList.remove(
-                "show"
-            );
-        }, 2500);
+        window.setTimeout(
+            () => {
+                elements.toast.classList.remove(
+                    "show"
+                );
+            },
+            2500
+        );
 }
 
 /* =========================================================
