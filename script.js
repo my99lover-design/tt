@@ -11,7 +11,7 @@
  * Google Apps Script 웹 앱 배포 주소를 입력합니다.
  * 반드시 /exec로 끝나는 주소를 사용합니다.
  */
-const API_URL = "https://script.google.com/macros/s/AKfycbyFbQUILKYrMZEfGl8tXPHThYEK1ncyU0JV36Dbfiqi5cdFRKY06PQUS4IwHDDLW8boIA/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbxMc74RsguWtr-4Nx3w2OeTctpb8-ILGN5j41kW97YNY-0KMX4FOfdvQUKDL0UGTbxk/exec";
 
 /*
  * locations.json은 index.html, script.js와
