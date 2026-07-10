@@ -1,83 +1,686 @@
-:root { --bg-color: #f0f2f5; --card-bg: #ffffff; --primary: #3b82f6; --text-main: #111827; --text-sub: #6b7280; --accent: #ef4444; --border: #e5e7eb; --gps-btn-bg: #e0e7ff; --gps-btn-text: #4f46e5; --step-bg: #f3f4f6; }
-[data-theme="dark"] { --bg-color: #111827; --card-bg: #1f2937; --primary: #60a5fa; --text-main: #f9fafb; --text-sub: #9ca3af; --accent: #f87171; --border: #374151; --gps-btn-bg: #312e81; --gps-btn-text: #c7d2fe; --step-bg: #374151; }
-body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background-color: var(--bg-color); color: var(--text-main); margin: 0; padding: 15px; display: flex; flex-direction: column; align-items: center; transition: all 0.3s; }
-.container { width: 100%; max-width: 500px; padding-bottom: 40px; }
-.header-area { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; margin-top: 5px; }
-h1 { font-size: 1.5rem; margin: 0; line-height: 1.1; }
-.theme-toggle { background: var(--card-bg); border: 1px solid var(--border); padding: 8px 16px; border-radius: 20px; cursor: pointer; color: var(--text-main); font-size: 1.1rem; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
-.nav-buttons-container { display: none; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; margin-bottom: 15px; width: 100%; }
-.nav-btn { background: var(--card-bg); border: 2px solid var(--border); padding: 12px 0; border-radius: 14px; cursor: pointer; color: var(--text-main); font-size: 1.05rem; font-weight: 700; text-align: center; box-shadow: 0 3px 5px rgba(0,0,0,0.06); }
-.nav-btn:active { background: var(--step-bg); }
-.gps-section { margin-bottom: 20px; display: none; }
-.gps-header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-.gps-title { font-size: 1rem; color: var(--text-sub); font-weight: bold; }
-.gps-status-badge { font-size: 0.85rem; font-weight: bold; padding: 4px 10px; border-radius: 12px; background: var(--card-bg); border: 1px solid var(--border); }
-.gps-buttons { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; padding-bottom: 8px; width: 100%; }
-.gps-btn { background: var(--gps-btn-bg); color: var(--gps-btn-text); border: none; padding: 10px 2px; border-radius: 12px; font-size: 0.85rem; font-weight: bold; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.05); text-align: center; overflow: hidden; }
-.step-container { background: var(--card-bg); border: 1px solid var(--border); border-radius: 20px; padding: 15px; margin-bottom: 25px; box-shadow: 0 4px 10px rgba(0,0,0,0.04); }
-.btn-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
-.select-btn { background: var(--step-bg); color: var(--text-main); border: 1px solid var(--border); padding: 15px 5px; border-radius: 16px; font-size: 1.15rem; font-weight: bold; cursor: pointer; text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
-.card-list { display: flex; flex-direction: column; gap: 14px; width: 100%; box-sizing: border-box; }
-.common-pwd-area { text-align: left; width: 100%; padding: 5px 0 12px 5px; box-sizing: border-box; display: none; }
-.common-pwd-title { font-size: 1.3rem; font-weight: 900; color: var(--text-main); margin-bottom: 6px; }
-.common-pwd-row { display: flex; align-items: center; gap: 10px; }
-.common-pwd-value { font-size: 1.15rem; font-weight: 800; color: var(--primary); background: var(--card-bg); display: inline-block; padding: 6px 12px; border-radius: 10px; border: 1px dashed var(--border); }
-.common-edit-btn { background: var(--step-bg); border: 1px solid var(--border); padding: 6px 12px; border-radius: 10px; font-size: 0.9rem; font-weight: bold; color: var(--text-sub); cursor: pointer; }
-.card { background: var(--card-bg); padding: 16px; border-radius: 18px; border: 1px solid var(--border); box-shadow: 0 4px 8px rgba(0,0,0,0.03); display: flex; flex-direction: column; gap: 8px; width: 100%; box-sizing: border-box; }
-.line-info { font-size: 1.15rem; font-weight: 800; color: var(--primary); text-align: left; }
-.pwd-box { background: rgba(239, 68, 68, 0.03); border: 1.5px solid var(--accent); padding: 12px; border-radius: 12px; width: 100%; box-sizing: border-box; text-align: left; line-height: 1.5; margin-bottom: 4px; }
-.pwd-container { display: flex; flex-direction: column; gap: 12px; }
-.pwd-row { display: flex; flex-direction: column; gap: 4px; }
-.pwd-highlight { font-size: 1.02rem; font-weight: 700; color: var(--accent); letter-spacing: 0.3px; white-space: pre-wrap; word-break: break-all; }
-.card-footer { display: flex; justify-content: flex-end; align-items: center; margin-top: 2px; }
-.edit-trigger-btn { background: none; border: none; color: var(--text-sub); font-size: 0.85rem; font-weight: bold; cursor: pointer; text-decoration: underline; opacity: 0.7; padding: 4px 0; }
-.modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; }
-.modal-content { background: var(--card-bg); padding: 25px; border-radius: 24px; width: 92%; max-width: 440px; box-sizing: border-box; }
-.modal h3 { margin-top: 0; margin-bottom: 20px; font-size: 1.3rem; }
-.form-group { margin-bottom: 16px; display: flex; flex-direction: column; gap: 6px; }
-.form-group label { font-size: 0.95rem; color: var(--text-sub); font-weight: bold; }
-.form-group input { padding: 14px; border: 1px solid var(--border); border-radius: 10px; background: var(--bg-color); color: var(--text-main); font-size: 1.1rem; }
-.modal-buttons { display: flex; gap: 10px; margin-top: 20px; }
-.modal-btn { flex: 1; padding: 15px; border: none; border-radius: 12px; font-weight: bold; cursor: pointer; font-size: 1.1rem; }
-.btn-submit { background: var(--primary); color: white; }
-.btn-cancel { background: var(--border); color: var(--text-main); }
-.btn-delete { background: var(--accent); color: white; }
-.status-msg { text-align: center; color: var(--text-sub); font-size: 1.1rem; width: 100%; padding: 20px 0; }
-.spinner { width: 20px; height: 20px; border: 3px solid #e5e7eb; border-top: 3px solid var(--primary); border-radius: 50%; animation: spin 1s linear infinite; display: inline-block; vertical-align: middle; margin-right: 8px; }
-@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-.header-single{ display:block !important; }
-.header-single h1{ width:100%; text-align:center; }
-.header-single #titleMain{ font-size:2.2rem !important; width:100%; }
-.header-single #titleSub{ display:none; }
-.card-footer{
-    display:flex;
-    justify-content:flex-end;
-    gap:8px;
-    margin-top:6px;
+:root {
+    --bg-color: #f0f2f5;
+    --card-bg: #ffffff;
+    --primary: #3b82f6;
+    --primary-dark: #2563eb;
+    --success: #22c55e;
+    --danger: #ef4444;
+    --text-main: #111827;
+    --text-sub: #6b7280;
+    --border: #e5e7eb;
+    --gps-btn-bg: #e0e7ff;
+    --gps-btn-text: #4f46e5;
+    --step-bg: #f3f4f6;
+    --modal-overlay: rgba(0, 0, 0, 0.55);
 }
 
-.line-btn{
-    display:flex;
-    align-items:center;
-    gap:5px;
-
-    border:none;
-    border-radius:10px;
-
-    padding:6px 12px;
-
-    cursor:pointer;
-
-    font-size:.85rem;
-    font-weight:700;
+[data-theme="dark"] {
+    --bg-color: #111827;
+    --card-bg: #1f2937;
+    --primary: #60a5fa;
+    --primary-dark: #3b82f6;
+    --success: #22c55e;
+    --danger: #f87171;
+    --text-main: #f9fafb;
+    --text-sub: #9ca3af;
+    --border: #374151;
+    --gps-btn-bg: #312e81;
+    --gps-btn-text: #c7d2fe;
+    --step-bg: #374151;
+    --modal-overlay: rgba(0, 0, 0, 0.72);
 }
 
-.add-btn{
-    background:#22c55e;
-    color:white;
+* {
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
 }
 
-.delete-btn{
-    background:#ef4444;
-    color:white;
+html {
+    min-height: 100%;
+    background: var(--bg-color);
+}
+
+body {
+    min-height: 100vh;
+    margin: 0;
+    padding: 15px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    overflow-x: hidden;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI",
+        "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+    background: var(--bg-color);
+    color: var(--text-main);
+    transition:
+        background-color 0.25s ease,
+        color 0.25s ease;
+}
+
+button,
+input {
+    font: inherit;
+}
+
+button {
+    touch-action: manipulation;
+}
+
+.container {
+    width: 100%;
+    max-width: 500px;
+    padding-bottom: 40px;
+}
+
+/* =========================
+   상단 제목
+========================= */
+
+.header-area {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+    width: 100%;
+    margin-top: 5px;
+    margin-bottom: 10px;
+}
+
+#appTitle {
+    min-width: 0;
+    margin: 0;
+    line-height: 1.05;
+}
+
+#titleMain {
+    display: block;
+    font-size: 3rem;
+    font-weight: 900;
+    letter-spacing: -1.5px;
+    white-space: nowrap;
+}
+
+#titleSub {
+    display: block;
+    margin-top: 5px;
+    color: var(--text-sub);
+    font-size: 1.8rem;
+    font-weight: 700;
+    letter-spacing: -0.8px;
+}
+
+.theme-toggle {
+    flex: 0 0 auto;
+    min-width: 86px;
+    margin-top: 4px;
+    padding: 9px 13px;
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    background: var(--card-bg);
+    color: var(--text-main);
+    font-size: 0.95rem;
+    font-weight: 800;
+    white-space: nowrap;
+    cursor: pointer;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.06);
+}
+
+.theme-toggle:active {
+    transform: scale(0.97);
+}
+
+/* 메인 이외 화면 제목 */
+
+.header-area.header-single {
+    display: block;
+    margin-bottom: 8px;
+}
+
+.header-single #appTitle {
+    width: 100%;
+    text-align: center;
+}
+
+.header-single #titleMain {
+    width: 100%;
+    font-size: clamp(1.75rem, 7vw, 2.2rem);
+    line-height: 1.15;
+    letter-spacing: -1.2px;
+    text-align: center;
+    white-space: nowrap;
+}
+
+.header-single #titleSub {
+    display: none;
+}
+
+/* =========================
+   뒤로가기 / 홈
+========================= */
+
+.nav-buttons-container {
+    display: none;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    width: 100%;
+    margin-top: 8px;
+    margin-bottom: 12px;
+}
+
+.nav-btn {
+    width: 100%;
+    padding: 11px 4px;
+    border: 1.5px solid var(--border);
+    border-radius: 13px;
+    background: var(--card-bg);
+    color: var(--text-main);
+    font-size: 1rem;
+    font-weight: 750;
+    text-align: center;
+    cursor: pointer;
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.05);
+}
+
+.nav-btn:active {
+    transform: scale(0.98);
+    background: var(--step-bg);
+}
+
+/* =========================
+   GPS
+========================= */
+
+.gps-section {
+    display: none;
+    width: 100%;
+    margin-bottom: 18px;
+}
+
+.gps-header-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 9px;
+}
+
+.gps-title {
+    color: var(--text-sub);
+    font-size: 1rem;
+    font-weight: 800;
+}
+
+.gps-status-badge {
+    flex: 0 0 auto;
+    padding: 4px 9px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--card-bg);
+    font-size: 0.8rem;
+    font-weight: 800;
+    white-space: nowrap;
+}
+
+.gps-buttons {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 6px;
+    width: 100%;
+}
+
+.gps-btn {
+    min-width: 0;
+    min-height: 58px;
+    padding: 8px 3px;
+    overflow: hidden;
+    border: none;
+    border-radius: 11px;
+    background: var(--gps-btn-bg);
+    color: var(--gps-btn-text);
+    font-size: 0.8rem;
+    font-weight: 800;
+    line-height: 1.2;
+    text-align: center;
+    text-overflow: ellipsis;
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.gps-btn:active {
+    transform: scale(0.97);
+}
+
+/* =========================
+   선택 버튼 영역
+========================= */
+
+.step-container {
+    width: 100%;
+    margin-bottom: 22px;
+    padding: 13px;
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    background: var(--card-bg);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.04);
+}
+
+.btn-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+    width: 100%;
+}
+
+.select-btn {
+    min-width: 0;
+    min-height: 49px;
+    padding: 13px 4px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    border-radius: 13px;
+    background: var(--step-bg);
+    color: var(--text-main);
+    font-size: 1.03rem;
+    font-weight: 800;
+    line-height: 1.15;
+    text-align: center;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+}
+
+.select-btn:active {
+    transform: scale(0.97);
+    opacity: 0.9;
+}
+
+/* =========================
+   공동비밀번호
+========================= */
+
+.common-pwd-area {
+    display: none;
+    width: 100%;
+    padding: 3px 0 11px 4px;
+    text-align: left;
+}
+
+.common-pwd-title {
+    margin-bottom: 6px;
+    color: var(--text-main);
+    font-size: 1.25rem;
+    font-weight: 900;
+}
+
+.common-pwd-row {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    flex-wrap: wrap;
+}
+
+.common-pwd-value {
+    display: inline-block;
+    max-width: 100%;
+    padding: 7px 12px;
+    border: 1px dashed var(--border);
+    border-radius: 10px;
+    background: var(--card-bg);
+    color: var(--primary);
+    font-size: 1.12rem;
+    font-weight: 850;
+    white-space: pre-wrap;
+    word-break: break-all;
+}
+
+.common-edit-btn {
+    padding: 7px 11px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--step-bg);
+    color: var(--text-sub);
+    font-size: 0.85rem;
+    font-weight: 800;
+    cursor: pointer;
+}
+
+.common-edit-btn:active {
+    transform: scale(0.97);
+}
+
+/* =========================
+   라인별 비밀번호 카드
+========================= */
+
+.card-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    width: 100%;
+}
+
+.card {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+    padding: 14px;
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    background: var(--card-bg);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.03);
+}
+
+.line-info {
+    color: var(--primary);
+    font-size: 1.12rem;
+    font-weight: 850;
+    text-align: left;
+}
+
+.pwd-container {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.pwd-row {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.pwd-box {
+    width: 100%;
+    min-height: 48px;
+    padding: 11px;
+    border: 1.5px solid var(--danger);
+    border-radius: 11px;
+    background: rgba(239, 68, 68, 0.035);
+    line-height: 1.5;
+    text-align: left;
+}
+
+.pwd-highlight {
+    color: var(--danger);
+    font-size: 1.03rem;
+    font-weight: 750;
+    letter-spacing: 0.2px;
+    white-space: pre-wrap;
+    word-break: break-all;
+}
+
+/* 추가 / 삭제 버튼 */
+
+.card-footer {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 3px;
+}
+
+.line-action-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    min-width: 72px;
+    padding: 7px 11px;
+    border: none;
+    border-radius: 10px;
+    color: #ffffff;
+    font-size: 0.84rem;
+    font-weight: 800;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.line-action-btn:active {
+    transform: scale(0.96);
+}
+
+.add-btn {
+    background: var(--success);
+}
+
+.delete-btn {
+    background: var(--danger);
+}
+
+/* =========================
+   모달
+========================= */
+
+.modal {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    background: var(--modal-overlay);
+}
+
+.modal-content {
+    width: 100%;
+    max-width: 430px;
+    max-height: 88vh;
+    padding: 23px;
+    overflow-y: auto;
+    border: 1px solid var(--border);
+    border-radius: 22px;
+    background: var(--card-bg);
+    color: var(--text-main);
+    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.2);
+}
+
+.modal h3 {
+    margin: 0 0 18px;
+    font-size: 1.25rem;
+    line-height: 1.35;
+}
+
+.modal-info {
+    margin-bottom: 14px;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--step-bg);
+    color: var(--text-sub);
+    font-size: 0.9rem;
+    font-weight: 700;
+    line-height: 1.4;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    margin-bottom: 15px;
+}
+
+.form-group label {
+    color: var(--text-sub);
+    font-size: 0.93rem;
+    font-weight: 800;
+}
+
+.form-group input {
+    width: 100%;
+    padding: 13px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    outline: none;
+    background: var(--bg-color);
+    color: var(--text-main);
+    font-size: 1.05rem;
+}
+
+.form-group input:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
+}
+
+.modal-buttons {
+    display: flex;
+    gap: 9px;
+    margin-top: 18px;
+}
+
+.modal-btn {
+    flex: 1;
+    min-height: 47px;
+    padding: 12px;
+    border: none;
+    border-radius: 11px;
+    font-size: 1rem;
+    font-weight: 850;
+    cursor: pointer;
+}
+
+.modal-btn:active {
+    transform: scale(0.98);
+}
+
+.btn-submit {
+    background: var(--primary);
+    color: #ffffff;
+}
+
+.btn-cancel {
+    background: var(--border);
+    color: var(--text-main);
+}
+
+/* 삭제 번호 선택 버튼 */
+
+.delete-pwd-buttons {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 9px;
+    width: 100%;
+}
+
+.delete-pwd-btn {
+    width: 100%;
+    padding: 13px 10px;
+    border: 1px solid var(--danger);
+    border-radius: 11px;
+    background: rgba(239, 68, 68, 0.06);
+    color: var(--danger);
+    font-size: 1.05rem;
+    font-weight: 800;
+    text-align: center;
+    word-break: break-all;
+    cursor: pointer;
+}
+
+.delete-pwd-btn:active {
+    transform: scale(0.98);
+    background: rgba(239, 68, 68, 0.13);
+}
+
+/* =========================
+   상태 / 토스트
+========================= */
+
+.status-msg {
+    width: 100%;
+    padding: 18px 0;
+    color: var(--text-sub);
+    font-size: 1.05rem;
+    text-align: center;
+}
+
+.spinner {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    margin-right: 7px;
+    vertical-align: middle;
+    border: 3px solid var(--border);
+    border-top-color: var(--primary);
+    border-radius: 50%;
+    animation: spin 0.85s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.toast {
+    position: fixed;
+    left: 50%;
+    bottom: 24px;
+    z-index: 2000;
+    max-width: calc(100% - 32px);
+    padding: 11px 18px;
+    border-radius: 12px;
+    background: rgba(17, 24, 39, 0.92);
+    color: #ffffff;
+    font-size: 0.92rem;
+    font-weight: 800;
+    text-align: center;
+    pointer-events: none;
+    opacity: 0;
+    transform: translate(-50%, 14px);
+    transition:
+        opacity 0.2s ease,
+        transform 0.2s ease;
+}
+
+.toast.show {
+    opacity: 1;
+    transform: translate(-50%, 0);
+}
+
+/* =========================
+   모바일 보정
+========================= */
+
+@media (max-width: 390px) {
+    body {
+        padding: 12px;
+    }
+
+    #titleMain {
+        font-size: 2.55rem;
+    }
+
+    #titleSub {
+        font-size: 1.55rem;
+    }
+
+    .theme-toggle {
+        min-width: 78px;
+        padding: 8px 10px;
+        font-size: 0.86rem;
+    }
+
+    .gps-btn {
+        min-height: 55px;
+        font-size: 0.74rem;
+    }
+
+    .select-btn {
+        min-height: 47px;
+        padding: 12px 3px;
+        font-size: 0.96rem;
+    }
+
+    .nav-btn {
+        padding: 10px 3px;
+        font-size: 0.93rem;
+    }
+
+    .line-action-btn {
+        min-width: 68px;
+        padding: 7px 9px;
+        font-size: 0.8rem;
+    }
 }
