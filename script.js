@@ -500,21 +500,19 @@ function isValidCoordinate(
     );
 }
 
-/*
- * 아파트 이름 비교용 정규화
- *
- * 예:
- * 래미안.        → 래미안
- * 래미안 아파트  → 래미안
- * LH1.           → lh1
- */
 function normalizeApartmentName(value) {
-    return cleanText(value)
-        .normalize("NFKC")
-        .toLowerCase()
-        .replace(/[^\p{L}\p{N}]/gu, "")
-        .replace(/아파트$/u, "")
-        .replace(/오피스텔$/u, "");
+    /*
+     * 아파트 이름을 글자 그대로 비교합니다.
+     *
+     * LH2  ≠ LH2.
+     * LH5  ≠ LH5.
+     *
+     * 마침표, 공백, 특수문자, 영문 대소문자를
+     * 임의로 삭제하거나 변경하지 않습니다.
+     *
+     * 앞뒤에 실수로 들어간 공백만 제거합니다.
+     */
+    return cleanText(value).normalize("NFC");
 }
 
 /* =========================================================
@@ -3058,9 +3056,8 @@ function formatDistance(distance) {
         return `${Math.round(distance)}m`;
     }
 
-    return `${(distance / 1000).toFixed(1)}km`;
+    return `${(distance / 1000).toFixed(2)}km`;
 }
-
 /* =========================================================
    모달 공통 처리
 ========================================================= */
