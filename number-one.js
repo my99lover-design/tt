@@ -29,7 +29,7 @@ function initializeNumberOne() {
     [
         "numberOneSection", "numberOneOpenBtn", "numberOneHomeBtn", "numberOneLocked", "numberOneApp", "numberOneLoginBtn", "numberOneRetryBtn",
         "numberOneWeekRange", "numberOneUserCode", "numberOneTotal", "numberOnePeak", "numberOneBonus",
-        "numberOneCondition150", "numberOneCondition250", "numberOneConditionPeak", "numberOneInputTitle",
+        "numberOneCondition150", "numberOneConditionPeak", "numberOneInputTitle",
         "numberOneDayStatus", "numberOneTotalInput", "numberOneTen17Input", "numberOneSeventeen24Input",
         "numberOneInputGuide", "numberOneSaveBtn", "numberOneDeleteBtn",
         "numberOneDetailsToggle", "numberOneDetails", "numberOneSyncNote", "numberOnePinModal",
@@ -170,9 +170,7 @@ function renderNumberOneApp() {
     numberOneElements.numberOnePeak.textContent = `${formatNumber(summary.tenToSeventeenCount)}건`;
     numberOneElements.numberOneBonus.textContent = formatMoney(summary.totalBonus);
 
-    updateCondition(numberOneElements.numberOneCondition150, summary.totalCount, 150, "151건 추가 시작");
-    updateCondition(numberOneElements.numberOneCondition250, summary.totalCount, 250, "주 250건");
-    updateCondition(numberOneElements.numberOneConditionPeak, summary.tenToSeventeenCount, 100, "10~17시 100건");
+    renderNumberOneConditionStatus(summary);
     renderNumberOneSelectedDay();
     renderNumberOneDetails();
 
@@ -183,11 +181,20 @@ function renderNumberOneApp() {
     numberOneElements.numberOneSyncNote.classList.toggle("warning", pendingCount > 0);
 }
 
-function updateCondition(element, currentValue, target, label) {
-    if (!element) return;
-    const current = Math.max(0, Number(currentValue) || 0);
-    element.textContent = current >= target ? `✓ ${label}` : `${label} ${current}/${target}`;
-    element.classList.toggle("done", current >= target);
+function renderNumberOneConditionStatus(summary = {}) {
+    const totalCount = Math.max(0, Number(summary.totalCount) || 0);
+    const peakCount = Math.max(0, Number(summary.tenToSeventeenCount) || 0);
+    const premiumCount = Math.max(0, Number(summary.premiumEligibleCount) || 0);
+    const standardCount = Math.max(0, Number(summary.standardEligibleCount) || 0);
+
+    if (numberOneElements.numberOneCondition150) {
+        numberOneElements.numberOneCondition150.textContent = `151건 추가 시작 / 주 ${formatNumber(totalCount)}건`;
+        numberOneElements.numberOneCondition150.classList.toggle("done", totalCount >= 151);
+    }
+    if (numberOneElements.numberOneConditionPeak) {
+        numberOneElements.numberOneConditionPeak.textContent = `10~17시 ${formatNumber(peakCount)}/100건 / +1500 ${formatNumber(premiumCount)}건 / +1000 ${formatNumber(standardCount)}건`;
+        numberOneElements.numberOneConditionPeak.classList.remove("done");
+    }
 }
 
 function renderNumberOneSelectedDay() {

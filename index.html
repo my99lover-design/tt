@@ -12,7 +12,7 @@
     <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
     <link rel="apple-touch-icon" href="icons/icon-180.png">
     <link rel="stylesheet" href="style.css?v=20260716-16">
-    <link rel="stylesheet" href="number-one.css?v=20260716-21">
+    <link rel="stylesheet" href="number-one.css?v=20260716-22">
 </head>
 <body>
 <div class="container">
@@ -52,10 +52,9 @@
                     <div class="number-one-summary-item"><div class="number-one-summary-label">10~17시</div><div id="numberOnePeak" class="number-one-summary-value">0건</div></div>
                     <div class="number-one-summary-item"><div class="number-one-summary-label">예상 추가금</div><div id="numberOneBonus" class="number-one-summary-value bonus">0원</div></div>
                 </div>
-                <div class="number-one-condition-row">
-                    <div id="numberOneCondition150" class="number-one-condition">151건 추가 시작 0/150</div>
-                    <div id="numberOneCondition250" class="number-one-condition">주 250건 0/250</div>
-                    <div id="numberOneConditionPeak" class="number-one-condition">10~17시 100건 0/100</div>
+                <div class="number-one-condition-status" aria-label="추가금 적용 현황">
+                    <div id="numberOneCondition150" class="number-one-condition-line">151건 추가 시작 / 주 0건</div>
+                    <div id="numberOneConditionPeak" class="number-one-condition-line">10~17시 0/100건 / +1500 0건 / +1000 0건</div>
                 </div>
                 <div class="number-one-input-card">
                     <div class="number-one-input-head">
@@ -349,7 +348,7 @@
 </div>
 
 <div id="toast" class="toast" role="status" aria-live="polite"><span id="toastMessage"></span><button id="toastActionBtn" class="toast-action-btn" type="button" hidden></button></div>
-<script src="script.js?v=20260716-21"></script>
-<script src="number-one.js?v=20260716-21"></script>
+<script src="script.js?v=20260716-22"></script>
+<script src="number-one.js?v=20260716-22"></script>
 </body>
 </html>
