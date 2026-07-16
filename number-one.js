@@ -29,7 +29,8 @@ function initializeNumberOne() {
     [
         "numberOneSection", "numberOneOpenBtn", "numberOneHomeBtn", "numberOneLocked", "numberOneApp", "numberOneLoginBtn", "numberOneRetryBtn",
         "numberOneWeekRange", "numberOneUserCode", "numberOneTotal", "numberOnePeak", "numberOneBonus",
-        "numberOneCondition150", "numberOneConditionPeak", "numberOneInputTitle",
+        "numberOneCondition150", "numberOneConditionPeak", "numberOneStartPart", "numberOneStartCurrent", "numberOneWeekCurrent",
+        "numberOnePeakPart", "numberOnePeakCurrent", "numberOneStandardCurrent", "numberOnePremiumCurrent", "numberOneInputTitle",
         "numberOneDayStatus", "numberOneTotalInput", "numberOneTen17Input", "numberOneSeventeen24Input",
         "numberOneInputGuide", "numberOneSaveBtn", "numberOneDeleteBtn",
         "numberOneDetailsToggle", "numberOneDetails", "numberOneSyncNote", "numberOnePinModal",
@@ -187,14 +188,23 @@ function renderNumberOneConditionStatus(summary = {}) {
     const premiumCount = Math.max(0, Number(summary.premiumEligibleCount) || 0);
     const standardCount = Math.max(0, Number(summary.standardEligibleCount) || 0);
 
-    if (numberOneElements.numberOneCondition150) {
-        numberOneElements.numberOneCondition150.textContent = `151건 추가 시작 / 주 ${formatNumber(totalCount)}건`;
-        numberOneElements.numberOneCondition150.classList.toggle("done", totalCount >= 151);
+    if (numberOneElements.numberOneStartCurrent) {
+        numberOneElements.numberOneStartCurrent.textContent = formatNumber(totalCount);
     }
-    if (numberOneElements.numberOneConditionPeak) {
-        numberOneElements.numberOneConditionPeak.textContent = `10~17시 ${formatNumber(peakCount)}/100건 / +1500 ${formatNumber(premiumCount)}건 / +1000 ${formatNumber(standardCount)}건`;
-        numberOneElements.numberOneConditionPeak.classList.remove("done");
+    if (numberOneElements.numberOneWeekCurrent) {
+        numberOneElements.numberOneWeekCurrent.textContent = formatNumber(totalCount);
     }
+    if (numberOneElements.numberOnePeakCurrent) {
+        numberOneElements.numberOnePeakCurrent.textContent = formatNumber(peakCount);
+    }
+    if (numberOneElements.numberOneStandardCurrent) {
+        numberOneElements.numberOneStandardCurrent.textContent = formatNumber(standardCount);
+    }
+    if (numberOneElements.numberOnePremiumCurrent) {
+        numberOneElements.numberOnePremiumCurrent.textContent = formatNumber(premiumCount);
+    }
+    numberOneElements.numberOneStartPart?.classList.toggle("done", totalCount >= 151);
+    numberOneElements.numberOnePeakPart?.classList.toggle("done", peakCount >= 100);
 }
 
 function renderNumberOneSelectedDay() {

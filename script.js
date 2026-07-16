@@ -1,5 +1,5 @@
 "use strict";
-/* 넘버원 김포B 공비 - GPS·데이터 갱신 명칭 구분판 20260716-22 */
+/* 넘버원 김포B 공비 - GPS·데이터 갱신 명칭 구분판 20260716-24 */
 const APP_BOOT_STARTED_AT = performance.now();
 const API_URL = "https://script.google.com/macros/s/AKfycbyFbQUILKYrMZEfGl8tXPHThYEK1ncyU0JV36Dbfiqi5cdFRKY06PQUS4IwHDDLW8boIA/exec";
 const LOCATIONS_URL = "./locations.json";
@@ -3971,14 +3971,14 @@ async function recoverFromSafeMode() {
 }
 
 const DIAGNOSTIC_CACHE_NAMES = Object.freeze({
-    app: "gimpo-b-app-v46",
+    app: "gimpo-b-app-v48",
     images: "gimpo-b-images-v4",
     data: "gimpo-b-data-v5",
     runtime: "gimpo-b-runtime-v3"
 });
 
 const DIAGNOSTIC_APP_SHELL = Object.freeze([
-    "./", "./index.html", "./style.css?v=20260716-16", "./number-one.css?v=20260716-22", "./script.js?v=20260716-22", "./number-one.js?v=20260716-22", "./manifest.json",
+    "./", "./index.html", "./style.css?v=20260716-16", "./number-one.css?v=20260716-24", "./script.js?v=20260716-24", "./number-one.js?v=20260716-24", "./manifest.json",
     "./icons/icon-180.png", "./icons/icon-192.png", "./icons/icon-512.png"
 ]);
 const DIAGNOSTIC_GATE_IMAGES = Object.freeze([
@@ -4158,7 +4158,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
 /* ========================= 성능 판정 현실화 v24 ========================= */
-const FINAL_BUILD_INFO = Object.freeze({ fileVersion: "20260716-22", serviceWorkerVersion: "v46" });
+const FINAL_BUILD_INFO = Object.freeze({ fileVersion: "20260716-24", serviceWorkerVersion: "v48" });
 const SAFE_MODE_BUILD_KEY = "gimpoB_safe_mode_build_v1";
 (function clearStaleSafeModeAfterBuildUpdate() {
     try {
