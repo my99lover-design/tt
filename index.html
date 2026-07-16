@@ -11,7 +11,7 @@
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
     <link rel="apple-touch-icon" href="icons/icon-180.png">
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css?v=20260716-15">
 </head>
 <body>
 <div class="container">
@@ -27,16 +27,41 @@
         <button id="homeBtn" class="nav-btn" type="button" onclick="resetSteps()">🏠 홈으로</button>
     </nav>
 
+    <div id="viewContextBar" class="view-context-bar" hidden></div>
+
     <section id="gpsSection" class="gps-section">
-        <div class="gps-header-row"><div class="gps-title">📍 내 주변(GPS)</div><div id="gpsStatusBadge" class="gps-status-badge">📡 신호 분석 중...</div></div>
+        <div class="gps-header-row">
+            <div class="gps-title">📍 내 주변(GPS)</div>
+            <div class="gps-header-actions">
+                <div id="gpsStatusBadge" aria-live="polite" class="gps-status-badge">📡 신호 분석 중...</div>
+                <button id="gpsRefreshBtn" class="gps-refresh-btn" type="button" aria-label="GPS 위치 갱신">🔄 GPS 갱신</button>
+            </div>
+        </div>
+        <div class="gps-info-row">
+            <div id="gpsLocationMeta" class="gps-location-meta">최근 위치 확인 중</div>
+            <div id="dataSyncStatus" aria-live="polite" class="data-sync-status">저장 데이터 확인 중</div>
+        </div>
         <div id="gpsButtons" class="gps-buttons"></div>
     </section>
 
     <section id="commonPwdStandalone" class="common-pwd-area"></section>
     <section id="stepContainer" class="step-container"><div id="buttonGrid" class="btn-grid">데이터를 불러오는 중... ⏳</div></section>
     <section id="cardList" class="card-list"></section>
+    <section id="homeDataStatusCard" class="home-data-status-card" data-level="checking" aria-live="polite">
+        <div class="home-data-status-copy">
+            <div class="home-data-status-heading">
+                <span id="homeDataStatusDot" class="home-data-status-dot" aria-hidden="true"></span>
+                <strong id="homeDataStatusTitle">데이터 확인 중</strong>
+            </div>
+            <div id="homeDataStatusDetail" class="home-data-status-detail">저장 데이터를 확인하고 있습니다.</div>
+        </div>
+        <button id="homeDataRefreshBtn" class="home-data-refresh-btn" type="button" disabled>확인 중…</button>
+    </section>
     <div class="admin-bottom-actions">
-        <button id="adminBtn" class="admin-btn" type="button">🔒 관리자만</button>
+        <button id="adminBtn" class="admin-btn" type="button">
+            <span class="admin-btn-label">🔒 관리자만</span>
+            <span id="adminPerformanceAlertBadge" class="admin-performance-alert-badge" hidden></span>
+        </button>
         <button id="historyBtn" class="history-btn history-btn-bottom" type="button">🕘 수정기록</button>
     </div>
 </div>
@@ -45,27 +70,50 @@
     <div class="modal-content">
         <h3 id="commonModalTitle">⚙️ 공동비밀번호 수정</h3>
         <div class="form-group"><label id="commonModalAptLabel">아파트명</label><input type="text" id="formCommonPwdValue" autocomplete="off" placeholder="공동비밀번호 입력"></div>
-        <div class="modal-buttons"><button class="modal-btn btn-submit" type="button" onclick="submitCommonPwdForm()">저장</button><button class="modal-btn btn-cancel" type="button" onclick="closeCommonModal()">취소</button></div>
+        <div class="password-edit-actions">
+            <button id="commonSaveBtn" class="modal-btn btn-submit" type="button" onclick="submitCommonPwdForm()">수정 저장</button>
+            <button id="commonDeleteBtn" class="modal-btn btn-danger" type="button" onclick="confirmDeleteCommonPassword()">삭제</button>
+        </div>
+        <div class="modal-buttons"><button class="modal-btn btn-cancel" type="button" onclick="closeCommonModal()">닫기</button></div>
     </div>
 </div>
 
 <div id="addPwdModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="addPwdModalTitle">
-    <div class="modal-content">
+    <div class="modal-content add-password-modal-content">
         <h3 id="addPwdModalTitle">➕ 비밀번호 추가</h3>
         <input type="hidden" id="addPwdRowId">
         <div id="addPwdInfo" class="modal-info"></div>
-        <div class="form-group"><label for="addPwdValue">새 비밀번호</label><input type="text" id="addPwdValue" autocomplete="off" placeholder="추가할 비밀번호 입력"></div>
-        <div class="modal-buttons"><button class="modal-btn btn-submit" type="button" onclick="submitAddPwd()">추가</button><button class="modal-btn btn-cancel" type="button" onclick="closeAddPwdModal()">취소</button></div>
+        <div id="addPwdFormatStatus" class="add-pwd-format-status"></div>
+        <div id="addPwdSmartFields" hidden>
+            <div class="add-pwd-smart-grid">
+                <div class="form-group"><label for="addPwdRoomValue">호수</label><input type="text" id="addPwdRoomValue" inputmode="numeric" autocomplete="off" placeholder="예: 203"></div>
+                <div class="form-group"><label for="addPwdCodeValue">비밀번호</label><input type="text" id="addPwdCodeValue" inputmode="numeric" autocomplete="off" placeholder="예: 9999"></div>
+            </div>
+            <div id="addPwdFormatSample" class="add-pwd-format-sample"></div>
+            <div id="addPwdPreview" class="add-pwd-preview">호수와 비밀번호를 입력하면 결과가 표시됩니다.</div>
+        </div>
+        <div id="addPwdDirectGroup" class="form-group"><label for="addPwdValue">전체 비밀번호 형식</label><input type="text" id="addPwdValue" autocomplete="off" placeholder="예: 101#0000 또는 홈 101 0000 홈"></div>
+        <button id="addPwdModeToggle" class="add-pwd-mode-toggle" type="button" hidden></button>
+        <div class="modal-buttons"><button id="addPwdSubmitBtn" class="modal-btn btn-submit" type="button" onclick="submitAddPwd()">추가</button><button class="modal-btn btn-cancel" type="button" onclick="closeAddPwdModal()">취소</button></div>
     </div>
 </div>
 
 <div id="deletePwdModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="deletePwdModalTitle">
-    <div class="modal-content">
-        <h3 id="deletePwdModalTitle">🗑 삭제할 비밀번호 선택</h3>
+    <div class="modal-content password-editor-modal-content">
+        <h3 id="deletePwdModalTitle">✏️ 비밀번호 수정·삭제</h3>
         <input type="hidden" id="deletePwdRowId">
+        <input type="hidden" id="selectedPwdOriginal">
         <div id="deletePwdInfo" class="modal-info"></div>
-        <div id="deletePwdButtons" class="delete-pwd-buttons"></div>
-        <div class="modal-buttons"><button class="modal-btn btn-cancel" type="button" onclick="closeDeletePwdModal()">취소</button></div>
+        <div class="password-editor-guide">수정하거나 삭제할 비밀번호를 선택하세요.</div>
+        <div id="deletePwdButtons" class="delete-pwd-buttons password-select-buttons"></div>
+        <div id="passwordEditPanel" class="password-edit-panel" hidden>
+            <div class="form-group"><label for="editPwdValue">선택한 비밀번호</label><input type="text" id="editPwdValue" autocomplete="off" placeholder="비밀번호 수정"></div>
+            <div class="password-edit-actions">
+                <button id="updateSelectedPwdBtn" class="modal-btn btn-submit" type="button" onclick="submitUpdatePassword()">수정 저장</button>
+                <button id="deleteSelectedPwdBtn" class="modal-btn btn-danger" type="button" onclick="confirmDeleteSelectedPassword()">삭제</button>
+            </div>
+        </div>
+        <div class="modal-buttons"><button class="modal-btn btn-cancel" type="button" onclick="closeDeletePwdModal()">닫기</button></div>
     </div>
 </div>
 
@@ -78,7 +126,7 @@
                 <button class="history-close-btn" type="button" aria-label="수정기록 닫기" onclick="closeChangeHistoryModal()">×</button>
             </div>
         </div>
-        <div id="historyStatus" class="history-status">기록을 불러오는 중입니다...</div>
+        <div id="historyStatus" aria-live="polite" class="history-status">기록을 불러오는 중입니다...</div>
         <div id="historyList" class="history-list"></div>
     </div>
 </div>
@@ -107,8 +155,13 @@
                 <button class="admin-close-btn" type="button" aria-label="관리자 화면 닫기" onclick="closeAdminModal()">×</button>
             </div>
         </div>
-        <div id="adminStatus" class="admin-status">점검 정보를 불러오는 중입니다...</div>
+        <div id="adminStatus" aria-live="polite" class="admin-status">점검 정보를 불러오는 중입니다...</div>
         <div id="adminContent" class="admin-content" hidden>
+            <div class="admin-view-tabs" role="tablist" aria-label="관리자 보기 선택">
+                <button id="adminCurrentTab" class="admin-view-tab active" type="button" role="tab" aria-selected="true" data-admin-view="current">현재상태</button>
+                <button id="adminStatsTab" class="admin-view-tab" type="button" role="tab" aria-selected="false" data-admin-view="stats">통계</button>
+            </div>
+            <div id="adminCurrentPanel" class="admin-view-panel" role="tabpanel">
             <section class="admin-section">
                 <div class="admin-section-title">📊 현재 상태</div>
                 <div id="adminMetrics" class="admin-metrics"></div>
@@ -116,17 +169,110 @@
             </section>
             <section class="admin-section">
                 <div class="admin-section-head">
+                    <div>⚡ 앱 성능 측정</div>
+                    <div id="adminPerformanceStatus" aria-live="polite" class="admin-data-quality-status">측정 중</div>
+                </div>
+                <div class="admin-help">최근 실행값과 최근 5회 평균을 표시합니다. 표준 범위는 이 앱의 실사용 기준이며 GPS·통신 환경에 따라 달라질 수 있습니다.</div>
+                <div id="adminPerformanceList" class="admin-performance-list"></div>
+            </section>
+            <section class="admin-section">
+                <div class="admin-section-head">
+                    <div>🔎 데이터 오류 점검</div>
+                    <div id="adminDataQualityStatus" aria-live="polite" class="admin-data-quality-status">확인 중</div>
+                </div>
+                <div class="admin-help">동·라인 중복, 중복 비밀번호, 구분기호와 우선순위·호수 정렬 이상, GPS 좌표 미연결을 점검합니다.</div>
+                <div class="admin-cleanup-actions">
+                    <button id="sortPasswordsBtn" class="admin-cleanup-btn" type="button">쉬운 번호 우선 정렬</button>
+                    <button id="deduplicatePasswordsBtn" class="admin-cleanup-btn danger" type="button">중복 제거</button>
+                </div>
+                <div class="admin-cleanup-help">정상 구분기호로 저장된 비밀번호만 처리합니다. 비밀번호 열 외의 데이터는 변경하지 않으며, 변경 대상이 있으면 실행 전 자동 백업됩니다.</div>
+                <div id="adminDataQualityList" class="admin-data-quality-list"></div>
+            </section>
+            <section class="admin-section">
+                <div class="admin-section-head">
+                    <div>🩺 앱 진단 보고서</div>
+                    <button id="adminDiagnosticsRefreshBtn" class="admin-cleanup-btn" type="button">다시 점검</button>
+                </div>
+                <div class="admin-help">현재 기기의 캐시·GPS·서비스워커·동기화·오류 상태를 점검합니다.</div>
+                <div id="adminDiagnosticsStatus" aria-live="polite" class="admin-data-quality-status">확인 중</div>
+                <div id="adminDiagnosticsList" class="admin-diagnostics-list"></div>
+            </section>
+            <section class="admin-section">
+                <div class="admin-section-head">
                     <div>💾 백업·복구</div>
                     <button id="createBackupBtn" class="create-backup-btn" type="button">지금 백업</button>
                 </div>
-                <div class="admin-help">최근 백업 10개를 보관합니다. 복구 전에는 현재 데이터가 자동으로 한 번 더 백업됩니다.</div>
+                <div class="admin-help">매일 새벽 6시경 자동 백업하며 최근 백업 5개만 보관합니다. 복구 전에는 현재 데이터가 자동으로 한 번 더 백업됩니다.</div>
+                <div class="admin-auto-backup-row">
+                    <div id="autoBackupStatus" aria-live="polite" class="admin-auto-backup-status">자동 백업 상태 확인 중</div>
+                    <button id="setupAutoBackupBtn" class="setup-auto-backup-btn" type="button">자동백업 재설정</button>
+                </div>
+                <div id="autoBackupWarning" class="admin-backup-warning" hidden></div>
                 <div id="backupList" class="backup-list"></div>
             </section>
+            </div>
+            <div id="adminStatsPanel" class="admin-view-panel" role="tabpanel" hidden>
+                <section class="admin-section">
+                    <div class="admin-section-head">
+                        <div>📈 데이터 통계</div>
+                        <div id="adminStatsCheckedAt" aria-live="polite" class="admin-data-quality-status">확인 중</div>
+                    </div>
+                    <div class="admin-help">현재 구글시트 데이터와 수정기록을 기준으로 계산합니다. GPS·게이트 현황은 현재 기기의 연결 데이터를 함께 반영합니다.</div>
+                    <div id="adminStatsMetrics" class="admin-metrics admin-stats-metrics"></div>
+                </section>
+                <section class="admin-section">
+                    <div class="admin-section-title">🗺 지역별 현황</div>
+                    <div id="adminRegionStats" class="admin-stats-list"></div>
+                </section>
+                <section class="admin-section">
+                    <div class="admin-section-title">📝 수정 활동</div>
+                    <div id="adminChangeTypeStats" class="admin-stats-list"></div>
+                </section>
+                <section class="admin-section">
+                    <div class="admin-section-title">🔥 자주 수정된 아파트</div>
+                    <div id="adminTopApartments" class="admin-stats-list"></div>
+                </section>
+                <section class="admin-section">
+                    <div class="admin-section-title">ℹ 앱 정보</div>
+                    <div id="adminAppInfoStats" class="admin-stats-list"></div>
+                </section>
+            </div>
         </div>
     </div>
 </div>
 
-<div id="toast" class="toast" role="status" aria-live="polite"></div>
-<script src="script.js"></script>
+<div id="backupCompareModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="backupCompareTitle">
+    <div class="modal-content backup-compare-modal-content">
+        <h2 id="backupCompareTitle">백업 복구 전 비교</h2>
+        <div id="backupCompareStatus" class="modal-info">비교 중...</div>
+        <div id="backupCompareSummary" class="backup-compare-summary"></div>
+        <div id="backupCompareExamples" class="backup-compare-examples"></div>
+        <div class="modal-buttons">
+            <button id="backupCompareRestoreBtn" class="modal-btn btn-danger" type="button">이 백업으로 복구</button>
+            <button id="backupCompareCancelBtn" class="modal-btn btn-cancel" type="button">취소</button>
+        </div>
+    </div>
+</div>
+
+<div id="gateImageModal" class="modal gate-image-modal" role="dialog" aria-modal="true" aria-labelledby="gateImageTitle">
+    <div class="gate-image-modal-content">
+        <div class="gate-image-toolbar">
+            <div>
+                <div id="gateImageTitle" class="gate-image-title">게이트 위치</div>
+                <div class="gate-image-help">두 손가락 확대 · 확대 후 드래그</div>
+            </div>
+            <div class="gate-image-tools">
+                <button id="gateImageResetBtn" class="gate-image-tool-btn" type="button">원위치</button>
+                <button id="gateImageCloseBtn" class="gate-image-close-btn" type="button" aria-label="게이트 이미지 닫기">×</button>
+            </div>
+        </div>
+        <div id="gateImageStage" class="gate-image-stage">
+            <img id="gateImage" class="gate-image" alt="게이트 위치 안내" draggable="false">
+        </div>
+    </div>
+</div>
+
+<div id="toast" class="toast" role="status" aria-live="polite"><span id="toastMessage"></span><button id="toastActionBtn" class="toast-action-btn" type="button" hidden></button></div>
+<script src="script.js?v=20260716-15"></script>
 </body>
 </html>
