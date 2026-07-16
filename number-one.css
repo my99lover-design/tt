@@ -92,3 +92,7 @@ body.number-one-screen-active #numberOneSection { display:block!important; margi
     .number-one-action-row { grid-template-columns:minmax(0,1fr) minmax(0,.9fr); }
     .number-one-delete-btn { font-size:.7rem; }
 }
+
+/* v20 화면 전환·17~24 입력·관리자 비밀 진입 */
+#titleMain { -webkit-user-select:none; user-select:none; touch-action:manipulation; }
+body:not(.number-one-screen-active) #numberOneSection { display:none!important; }

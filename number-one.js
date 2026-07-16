@@ -30,7 +30,7 @@ function initializeNumberOne() {
         "numberOneSection", "numberOneOpenBtn", "numberOneHomeBtn", "numberOneLocked", "numberOneApp", "numberOneLoginBtn", "numberOneRetryBtn",
         "numberOneWeekRange", "numberOneUserCode", "numberOneTotal", "numberOnePeak", "numberOneBonus",
         "numberOneCondition150", "numberOneCondition250", "numberOneConditionPeak", "numberOneInputTitle",
-        "numberOneDayStatus", "numberOneTotalInput", "numberOneTen17Input", "numberOneTen24Input",
+        "numberOneDayStatus", "numberOneTotalInput", "numberOneTen17Input", "numberOneSeventeen24Input",
         "numberOneSix10Input", "numberOneSix10Field", "numberOneInputGuide", "numberOneSaveBtn", "numberOneDeleteBtn",
         "numberOneDetailsToggle", "numberOneDetails", "numberOneSyncNote", "numberOnePinModal",
         "numberOnePinInput", "numberOnePinError", "numberOnePinSubmitBtn", "numberOnePinCancelBtn"
@@ -51,7 +51,7 @@ function initializeNumberOne() {
     numberOneElements.numberOneDeleteBtn?.addEventListener("click", deleteNumberOneDay);
     numberOneElements.numberOneDetailsToggle?.addEventListener("click", toggleNumberOneDetails);
     numberOneElements.numberOneUserCode?.addEventListener("click", copyNumberOneUserCode);
-    ["numberOneTotalInput", "numberOneTen17Input", "numberOneTen24Input", "numberOneSix10Input"].forEach(id => {
+    ["numberOneTotalInput", "numberOneTen17Input", "numberOneSeventeen24Input", "numberOneSix10Input"].forEach(id => {
         numberOneElements[id]?.addEventListener("input", validateNumberOneInputs);
     });
     window.addEventListener("online", flushNumberOnePending);
@@ -70,6 +70,7 @@ function initializeNumberOne() {
 
 function openNumberOneScreen() {
     numberOneState.screenOpen = true;
+    numberOneElements.numberOneSection.style.removeProperty("display");
     document.body.classList.add("number-one-screen-active");
     numberOneElements.numberOneSection.hidden = false;
     window.scrollTo({ top: 0, behavior: "auto" });
@@ -81,11 +82,12 @@ function openNumberOneScreen() {
 function closeNumberOneScreen() {
     numberOneState.screenOpen = false;
     document.body.classList.remove("number-one-screen-active");
-    numberOneElements.numberOneSection.hidden = true;
     closeNumberOnePinModal(true);
     try {
         if (typeof resetSteps === "function") resetSteps();
     } catch (error) {}
+    numberOneElements.numberOneSection.hidden = true;
+    numberOneElements.numberOneSection.style.display = "none";
     window.scrollTo({ top: 0, behavior: "auto" });
 }
 
@@ -199,7 +201,7 @@ function renderNumberOneSelectedDay() {
     numberOneElements.numberOneInputTitle.textContent = `${isToday ? "오늘" : getNumberOneWeekday(workDate)} · ${formatNumberOneDate(workDate)} 수행`;
     setNumberInput(numberOneElements.numberOneTotalInput, day.totalCount);
     setNumberInput(numberOneElements.numberOneTen17Input, day.tenToSeventeen);
-    setNumberInput(numberOneElements.numberOneTen24Input, day.tenToTwentyFour);
+    setNumberInput(numberOneElements.numberOneSeventeen24Input, getNumberOneSeventeenToTwentyFour(day));
     setNumberInput(numberOneElements.numberOneSix10Input, day.sixToTen);
 
     const hasAny = hasNumberOneDayValues(day);
@@ -224,12 +226,12 @@ function hasNumberOneDayValues(day) {
 
 function validateNumberOneInputs() {
     const values = readNumberOneInputs();
-    let message = "빈칸은 그대로 두고 필요한 항목만 나눠 저장할 수 있습니다.";
+    let message = "공란은 0건으로 저장됩니다.";
     let level = "";
     const invalidInput = [
         [numberOneElements.numberOneTotalInput, "총건수"],
         [numberOneElements.numberOneTen17Input, "10~17시"],
-        [numberOneElements.numberOneTen24Input, "10~24시"],
+        [numberOneElements.numberOneSeventeen24Input, "17~24시"],
         [numberOneElements.numberOneSix10Input, "06~10시"]
     ].find(([element]) => {
         const text = String(element?.value ?? "").trim();
@@ -239,27 +241,19 @@ function validateNumberOneInputs() {
     });
     const total = values.totalCount;
     const ten17 = values.tenToSeventeen;
+    const seventeen24 = values.seventeenToTwentyFour;
     const ten24 = values.tenToTwentyFour;
     const six10 = values.sixToTen;
 
-    if (invalidInput) {
-        message = `${invalidInput[1]}는 0~999 사이의 정수로 입력해주세요.`;
+    if (invalidInput || [total, ten17, seventeen24, ten24, six10].some(value => value === null)) {
+        message = `${invalidInput?.[1] || "입력값"}는 0~999 사이의 정수로 입력해주세요.`;
         level = "error";
-    } else if (ten17 !== null && ten24 !== null && ten17 > ten24) {
-        message = "10~17시 건수는 10~24시 건수보다 클 수 없습니다.";
+    } else if (ten24 > total) {
+        message = "10~17시와 17~24시 합계가 총건수를 초과합니다.";
         level = "error";
-    } else if (total !== null && ten24 !== null && ten24 > total) {
-        message = "10~24시 건수는 총건수보다 클 수 없습니다.";
+    } else if (six10 + ten24 > total) {
+        message = "06~10시·10~17시·17~24시 합계가 총건수를 초과합니다.";
         level = "error";
-    } else if (total !== null && six10 !== null && ten24 !== null && six10 + ten24 > total) {
-        message = "06~10시와 10~24시 합계가 총건수를 초과합니다.";
-        level = "error";
-    } else if (total !== null && ten17 !== null && ten17 > total) {
-        message = "10~17시 건수는 총건수보다 클 수 없습니다.";
-        level = "error";
-    } else if (numberOneState.data?.summary?.needsSixToTen && numberOneState.data.summary.crossingWorkDate === numberOneState.selectedWorkDate && six10 === null) {
-        message = "이번 날에 주간 150건을 넘었습니다. 정확한 +500원 계산을 위해 06~10시를 입력해주세요.";
-        level = "warning";
     }
     numberOneElements.numberOneInputGuide.textContent = message;
     numberOneElements.numberOneInputGuide.className = `number-one-input-guide ${level}`;
@@ -268,20 +262,41 @@ function validateNumberOneInputs() {
 }
 
 function readNumberOneInputs() {
+    const totalCount = parseCountOrZero(numberOneElements.numberOneTotalInput?.value);
+    const tenToSeventeen = parseCountOrZero(numberOneElements.numberOneTen17Input?.value);
+    const seventeenToTwentyFour = parseCountOrZero(numberOneElements.numberOneSeventeen24Input?.value);
+    const sixToTen = parseCountOrZero(numberOneElements.numberOneSix10Input?.value);
     return {
-        totalCount: parseOptionalCount(numberOneElements.numberOneTotalInput?.value),
-        tenToSeventeen: parseOptionalCount(numberOneElements.numberOneTen17Input?.value),
-        tenToTwentyFour: parseOptionalCount(numberOneElements.numberOneTen24Input?.value),
-        sixToTen: parseOptionalCount(numberOneElements.numberOneSix10Input?.value)
+        totalCount,
+        tenToSeventeen,
+        seventeenToTwentyFour,
+        tenToTwentyFour: tenToSeventeen === null || seventeenToTwentyFour === null ? null : tenToSeventeen + seventeenToTwentyFour,
+        sixToTen
     };
 }
 
-function parseOptionalCount(value) {
+function getNumberOneStoredValues(values) {
+    return {
+        totalCount: values.totalCount,
+        tenToSeventeen: values.tenToSeventeen,
+        tenToTwentyFour: values.tenToTwentyFour,
+        sixToTen: values.sixToTen
+    };
+}
+
+function parseCountOrZero(value) {
     const text = String(value ?? "").trim();
-    if (!text) return null;
+    if (!text) return 0;
     const number = Number(text);
     if (!Number.isInteger(number) || number < 0 || number > 999) return null;
     return number;
+}
+
+function getNumberOneSeventeenToTwentyFour(day) {
+    const ten17 = day?.tenToSeventeen;
+    const ten24 = day?.tenToTwentyFour;
+    if (ten17 === null || ten17 === undefined || ten24 === null || ten24 === undefined) return null;
+    return Math.max(0, (Number(ten24) || 0) - (Number(ten17) || 0));
 }
 
 async function refreshNumberOneWeek() {
@@ -362,12 +377,8 @@ function showNumberOnePinError(message) {
 async function saveNumberOneDay() {
     if (numberOneState.saving || !numberOneState.token || !numberOneState.data) return;
     if (!validateNumberOneInputs()) return;
-    const values = readNumberOneInputs();
-    const hasAny = Object.values(values).some(value => value !== null);
-    if (!hasAny) {
-        numberOneToast("저장할 건수를 입력해주세요.");
-        return;
-    }
+    const inputValues = readNumberOneInputs();
+    const values = getNumberOneStoredValues(inputValues);
     const workDate = numberOneState.selectedWorkDate || numberOneState.data.context?.currentWorkDate;
     if (!workDate) return;
 
@@ -425,7 +436,7 @@ function renderNumberOneDetails() {
     const daysMap = new Map((numberOneState.data.days || []).map(day => [day.workDate, day]));
     const dates = makeNumberOneWeekDates(context.weekStart);
     numberOneElements.numberOneDetails.innerHTML = `
-        <div class="number-one-details-head"><span>요일</span><span>총</span><span>10~17</span><span>10~24</span><span></span></div>
+        <div class="number-one-details-head"><span>요일</span><span>총</span><span>10~17</span><span>17~24</span><span></span></div>
         ${dates.map(workDate => {
             const day = daysMap.get(workDate) || {};
             const selected = workDate === numberOneState.selectedWorkDate;
@@ -433,7 +444,7 @@ function renderNumberOneDetails() {
                 <span class="number-one-day-name">${getNumberOneWeekday(workDate)} ${formatNumberOneDate(workDate, true)}</span>
                 <span class="number-one-day-value">${displayDayValue(day.totalCount)}</span>
                 <span class="number-one-day-value">${displayDayValue(day.tenToSeventeen)}</span>
-                <span class="number-one-day-value">${displayDayValue(day.tenToTwentyFour)}</span>
+                <span class="number-one-day-value">${displayDayValue(getNumberOneSeventeenToTwentyFour(day))}</span>
                 <span class="number-one-day-edit">수정</span>
             </button>`;
         }).join("")}`;
