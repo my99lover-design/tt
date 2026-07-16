@@ -1,7 +1,7 @@
 "use strict";
 
 /* 넘버원 전용 주간 수행·추가금 계산기 */
-const NUMBER_ONE_API_URL = "https://script.google.com/macros/s/AKfycbyFbQUILKYrMZEfGl8tXPHThYEK1ncyU0JV36Dbfiqi5cdFRKY06PQUS4IwHDDLW8boIA/exec";
+const NUMBER_ONE_API_URL = "https://script.google.com/macros/s/AKfycbxMc74RsguWtr-4Nx3w2OeTctpb8-ILGN5j41kW97YNY-0KMX4FOfdvQUKDL0UGTbxk/exec";
 const NUMBER_ONE_KEYS = Object.freeze({
     TOKEN: "gimpoB_number_one_token_v1",
     TOKEN_EXPIRES: "gimpoB_number_one_token_expires_v1",
