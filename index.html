@@ -12,7 +12,7 @@
     <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
     <link rel="apple-touch-icon" href="icons/icon-180.png">
     <link rel="stylesheet" href="style.css?v=20260716-16">
-    <link rel="stylesheet" href="number-one.css?v=20260716-16">
+    <link rel="stylesheet" href="number-one.css?v=20260716-19">
 </head>
 <body>
 <div class="container">
@@ -24,6 +24,10 @@
     <button id="installAppBtn" class="install-app-btn" type="button" hidden>📲 앱 설치</button>
 
     <section id="numberOneSection" class="number-one-section" hidden>
+        <div class="number-one-screen-topbar">
+            <button id="numberOneHomeBtn" class="number-one-home-btn" type="button">🏠 홈으로</button>
+            <div class="number-one-screen-heading">넘버원 전용</div>
+        </div>
         <div class="number-one-shell">
             <div id="numberOneLocked" class="number-one-locked">
                 <div class="number-one-locked-copy">
@@ -62,10 +66,13 @@
                         <div class="number-one-field"><label for="numberOneTotalInput">총건수</label><input id="numberOneTotalInput" type="number" inputmode="numeric" min="0" max="999" placeholder="입력"></div>
                         <div class="number-one-field"><label for="numberOneTen17Input">10~17시</label><input id="numberOneTen17Input" type="number" inputmode="numeric" min="0" max="999" placeholder="입력"></div>
                         <div class="number-one-field"><label for="numberOneTen24Input">10~24시</label><input id="numberOneTen24Input" type="number" inputmode="numeric" min="0" max="999" placeholder="입력"></div>
-                        <div id="numberOneSix10Field" class="number-one-field"><label for="numberOneSix10Input">06~10시 <small>선택</small></label><input id="numberOneSix10Input" type="number" inputmode="numeric" min="0" max="999" placeholder="돌파일용"></div>
+                        <div id="numberOneSix10Field" class="number-one-field"><label for="numberOneSix10Input">06~10시 <small>선택</small></label><input id="numberOneSix10Input" type="number" inputmode="numeric" min="0" max="999" placeholder="150건 넘은날만 작성"></div>
                     </div>
                     <div id="numberOneInputGuide" class="number-one-input-guide">필요한 항목만 나눠 저장할 수 있습니다.</div>
-                    <button id="numberOneSaveBtn" class="number-one-save-btn" type="button">저장</button>
+                    <div class="number-one-action-row">
+                        <button id="numberOneSaveBtn" class="number-one-save-btn" type="button">저장</button>
+                        <button id="numberOneDeleteBtn" class="number-one-delete-btn" type="button" disabled>입력기록 삭제</button>
+                    </div>
                 </div>
                 <button id="numberOneDetailsToggle" class="number-one-details-toggle" type="button">이번 주 기록 보기</button>
                 <div id="numberOneDetails" class="number-one-details" hidden></div>
@@ -110,11 +117,12 @@
         <button id="homeDataRefreshBtn" class="home-data-refresh-btn" type="button" disabled>확인 중…</button>
     </section>
     <div class="admin-bottom-actions">
+        <button id="numberOneOpenBtn" class="number-one-open-btn" type="button">🏅 넘버원 주간 수행</button>
+        <button id="historyBtn" class="history-btn history-btn-bottom" type="button">🕘 수정기록</button>
         <button id="adminBtn" class="admin-btn" type="button">
             <span class="admin-btn-label">🔒 관리자만</span>
             <span id="adminPerformanceAlertBadge" class="admin-performance-alert-badge" hidden></span>
         </button>
-        <button id="historyBtn" class="history-btn history-btn-bottom" type="button">🕘 수정기록</button>
     </div>
 </div>
 
@@ -342,7 +350,7 @@
 </div>
 
 <div id="toast" class="toast" role="status" aria-live="polite"><span id="toastMessage"></span><button id="toastActionBtn" class="toast-action-btn" type="button" hidden></button></div>
-<script src="script.js?v=20260716-17"></script>
-<script src="number-one.js?v=20260716-17"></script>
+<script src="script.js?v=20260716-19"></script>
+<script src="number-one.js?v=20260716-19"></script>
 </body>
 </html>

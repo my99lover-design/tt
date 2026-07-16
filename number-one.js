@@ -17,7 +17,9 @@ const numberOneState = {
     loading: false,
     saving: false,
     detailsOpen: false,
-    pendingSync: false
+    pendingSync: false,
+    screenOpen: false,
+    saveButtonTimer: 0
 };
 const numberOneElements = {};
 
@@ -25,17 +27,18 @@ document.addEventListener("DOMContentLoaded", initializeNumberOne, { once: true 
 
 function initializeNumberOne() {
     [
-        "numberOneSection", "numberOneLocked", "numberOneApp", "numberOneLoginBtn", "numberOneRetryBtn",
+        "numberOneSection", "numberOneOpenBtn", "numberOneHomeBtn", "numberOneLocked", "numberOneApp", "numberOneLoginBtn", "numberOneRetryBtn",
         "numberOneWeekRange", "numberOneUserCode", "numberOneTotal", "numberOnePeak", "numberOneBonus",
         "numberOneCondition150", "numberOneCondition250", "numberOneConditionPeak", "numberOneInputTitle",
         "numberOneDayStatus", "numberOneTotalInput", "numberOneTen17Input", "numberOneTen24Input",
-        "numberOneSix10Input", "numberOneSix10Field", "numberOneInputGuide", "numberOneSaveBtn",
+        "numberOneSix10Input", "numberOneSix10Field", "numberOneInputGuide", "numberOneSaveBtn", "numberOneDeleteBtn",
         "numberOneDetailsToggle", "numberOneDetails", "numberOneSyncNote", "numberOnePinModal",
         "numberOnePinInput", "numberOnePinError", "numberOnePinSubmitBtn", "numberOnePinCancelBtn"
     ].forEach(id => { numberOneElements[id] = document.getElementById(id); });
     if (!numberOneElements.numberOneSection) return;
-    numberOneElements.numberOneSection.hidden = false;
 
+    numberOneElements.numberOneOpenBtn?.addEventListener("click", openNumberOneScreen);
+    numberOneElements.numberOneHomeBtn?.addEventListener("click", closeNumberOneScreen);
     numberOneElements.numberOneLoginBtn?.addEventListener("click", openNumberOnePinModal);
     numberOneElements.numberOneRetryBtn?.addEventListener("click", refreshNumberOneWeek);
     numberOneElements.numberOnePinSubmitBtn?.addEventListener("click", submitNumberOnePin);
@@ -45,6 +48,7 @@ function initializeNumberOne() {
         if (event.key === "Escape") closeNumberOnePinModal();
     });
     numberOneElements.numberOneSaveBtn?.addEventListener("click", saveNumberOneDay);
+    numberOneElements.numberOneDeleteBtn?.addEventListener("click", deleteNumberOneDay);
     numberOneElements.numberOneDetailsToggle?.addEventListener("click", toggleNumberOneDetails);
     numberOneElements.numberOneUserCode?.addEventListener("click", copyNumberOneUserCode);
     ["numberOneTotalInput", "numberOneTen17Input", "numberOneTen24Input", "numberOneSix10Input"].forEach(id => {
@@ -58,9 +62,31 @@ function initializeNumberOne() {
         numberOneState.data = cached;
         numberOneState.selectedWorkDate = cached.context?.currentWorkDate || "";
         renderNumberOneApp();
+    } else if (!numberOneState.token) {
+        renderNumberOneLocked();
     }
-    if (numberOneState.token) refreshNumberOneWeek();
+    numberOneElements.numberOneSection.hidden = true;
+}
+
+function openNumberOneScreen() {
+    numberOneState.screenOpen = true;
+    document.body.classList.add("number-one-screen-active");
+    numberOneElements.numberOneSection.hidden = false;
+    window.scrollTo({ top: 0, behavior: "auto" });
+    if (numberOneState.data) renderNumberOneApp();
     else renderNumberOneLocked();
+    if (numberOneState.token) refreshNumberOneWeek();
+}
+
+function closeNumberOneScreen() {
+    numberOneState.screenOpen = false;
+    document.body.classList.remove("number-one-screen-active");
+    numberOneElements.numberOneSection.hidden = true;
+    closeNumberOnePinModal(true);
+    try {
+        if (typeof resetSteps === "function") resetSteps();
+    } catch (error) {}
+    window.scrollTo({ top: 0, behavior: "auto" });
 }
 
 function restoreNumberOneSession() {
@@ -176,18 +202,24 @@ function renderNumberOneSelectedDay() {
     setNumberInput(numberOneElements.numberOneTen24Input, day.tenToTwentyFour);
     setNumberInput(numberOneElements.numberOneSix10Input, day.sixToTen);
 
-    const hasAny = [day.totalCount, day.tenToSeventeen, day.tenToTwentyFour, day.sixToTen].some(value => value !== null && value !== undefined && value !== "");
+    const hasAny = hasNumberOneDayValues(day);
     const complete = day.totalCount !== null && day.totalCount !== undefined;
     numberOneElements.numberOneDayStatus.textContent = complete ? "입력 완료" : (hasAny ? "입력 중" : "미입력");
     numberOneElements.numberOneDayStatus.className = `number-one-day-status ${complete ? "complete" : (hasAny ? "partial" : "")}`;
     const needsSix = data.summary?.needsSixToTen && data.summary?.crossingWorkDate === workDate && (day.sixToTen === null || day.sixToTen === undefined);
     numberOneElements.numberOneSix10Field.classList.toggle("needs-input", Boolean(needsSix));
+    if (numberOneElements.numberOneDeleteBtn) numberOneElements.numberOneDeleteBtn.disabled = !hasAny;
     validateNumberOneInputs();
 }
 
 function setNumberInput(element, value) {
     if (!element) return;
     element.value = value === null || value === undefined ? "" : String(value);
+}
+
+function hasNumberOneDayValues(day) {
+    return [day?.totalCount, day?.tenToSeventeen, day?.tenToTwentyFour, day?.sixToTen]
+        .some(value => value !== null && value !== undefined && value !== "");
 }
 
 function validateNumberOneInputs() {
@@ -226,7 +258,7 @@ function validateNumberOneInputs() {
         message = "10~17시 건수는 총건수보다 클 수 없습니다.";
         level = "error";
     } else if (numberOneState.data?.summary?.needsSixToTen && numberOneState.data.summary.crossingWorkDate === numberOneState.selectedWorkDate && six10 === null) {
-        message = "이번 날이 150건 돌파일입니다. 정확한 +500원 계산을 위해 06~10시를 입력해주세요.";
+        message = "이번 날에 주간 150건을 넘었습니다. 정확한 +500원 계산을 위해 06~10시를 입력해주세요.";
         level = "warning";
     }
     numberOneElements.numberOneInputGuide.textContent = message;
@@ -259,7 +291,8 @@ async function refreshNumberOneWeek() {
         const result = await numberOneRequest("numberOneGetWeek", { token: numberOneState.token });
         numberOneState.data = result.data;
         numberOneState.selectedWorkDate = result.data?.context?.currentWorkDate || numberOneState.selectedWorkDate;
-        saveNumberOneCache(result.data);
+        reapplyNumberOnePendingLocally();
+        saveNumberOneCache(numberOneState.data);
         renderNumberOneApp();
         await flushNumberOnePending();
     } catch (error) {
@@ -307,7 +340,8 @@ async function submitNumberOnePin() {
         saveNumberOneSession(result.token, result.expiresAt);
         numberOneState.data = result.data;
         numberOneState.selectedWorkDate = result.data?.context?.currentWorkDate || "";
-        saveNumberOneCache(result.data);
+        reapplyNumberOnePendingLocally();
+        saveNumberOneCache(numberOneState.data);
         closeNumberOnePinModal(true);
         renderNumberOneApp();
         numberOneToast(`인증 완료 · ${result.data?.userCode || "익명 사용자"}`);
@@ -334,37 +368,46 @@ async function saveNumberOneDay() {
         numberOneToast("저장할 건수를 입력해주세요.");
         return;
     }
-    numberOneState.saving = true;
-    numberOneElements.numberOneSaveBtn.disabled = true;
-    numberOneElements.numberOneSaveBtn.textContent = "저장 중…";
     const workDate = numberOneState.selectedWorkDate || numberOneState.data.context?.currentWorkDate;
-    try {
-        const result = await numberOneRequest("numberOneSaveDay", {
-            token: numberOneState.token,
-            workDate,
-            values
-        });
-        numberOneState.data = result.data;
-        saveNumberOneCache(result.data);
-        removeNumberOnePending(workDate);
-        renderNumberOneApp();
-        numberOneToast("수행 기록을 저장했습니다.");
-    } catch (error) {
-        if (/인증|토큰|만료|사용 중지/.test(error.message)) {
-            clearNumberOneSession();
-            renderNumberOneLocked();
-            numberOneToast("전용 인증이 만료되었습니다.");
-        } else {
-            queueNumberOnePending(workDate, values);
-            applyNumberOneLocalSave(workDate, values);
-            renderNumberOneApp();
-            numberOneToast("네트워크 복구 시 자동 저장됩니다.");
-        }
-    } finally {
-        numberOneState.saving = false;
-        numberOneElements.numberOneSaveBtn.textContent = "저장";
-        validateNumberOneInputs();
+    if (!workDate) return;
+
+    numberOneState.saving = true;
+    queueNumberOnePending("save", workDate, values);
+    applyNumberOneLocalSave(workDate, values);
+    renderNumberOneApp();
+    showNumberOneSavedButton();
+    numberOneToast("기기에 바로 저장했습니다.");
+    numberOneState.saving = false;
+    validateNumberOneInputs();
+    void flushNumberOnePending();
+}
+
+function showNumberOneSavedButton() {
+    const button = numberOneElements.numberOneSaveBtn;
+    if (!button) return;
+    window.clearTimeout(numberOneState.saveButtonTimer);
+    button.textContent = "저장됨";
+    button.classList.add("saved");
+    numberOneState.saveButtonTimer = window.setTimeout(() => {
+        button.textContent = "저장";
+        button.classList.remove("saved");
+    }, 900);
+}
+
+function deleteNumberOneDay() {
+    if (!numberOneState.token || !numberOneState.data) return;
+    const workDate = numberOneState.selectedWorkDate || numberOneState.data.context?.currentWorkDate;
+    const day = (numberOneState.data.days || []).find(item => item.workDate === workDate);
+    if (!day || !hasNumberOneDayValues(day)) {
+        numberOneToast("삭제할 입력기록이 없습니다.");
+        return;
     }
+    if (!window.confirm(`${formatNumberOneDate(workDate)} 입력기록을 전부 삭제할까요?`)) return;
+    queueNumberOnePending("delete", workDate, null);
+    applyNumberOneLocalDelete(workDate);
+    renderNumberOneApp();
+    numberOneToast("입력기록을 삭제했습니다.");
+    void flushNumberOnePending();
 }
 
 function toggleNumberOneDetails() {
@@ -461,39 +504,67 @@ function loadNumberOnePending() {
     } catch (error) { return []; }
 }
 
-function queueNumberOnePending(workDate, values) {
+function queueNumberOnePending(type, workDate, values) {
     const pending = loadNumberOnePending().filter(item => item.workDate !== workDate);
-    pending.push({ workDate, values, savedAt: Date.now() });
+    pending.push({ type: type === "delete" ? "delete" : "save", workDate, values, savedAt: Date.now() });
     localStorage.setItem(NUMBER_ONE_KEYS.PENDING, JSON.stringify(pending));
 }
 
-function removeNumberOnePending(workDate) {
-    const pending = loadNumberOnePending().filter(item => item.workDate !== workDate);
+function removeNumberOnePending(workDate, savedAt) {
+    const pending = loadNumberOnePending().filter(item => {
+        if (item.workDate !== workDate) return true;
+        if (savedAt && Number(item.savedAt) !== Number(savedAt)) return true;
+        return false;
+    });
     localStorage.setItem(NUMBER_ONE_KEYS.PENDING, JSON.stringify(pending));
 }
 
 async function flushNumberOnePending() {
     if (numberOneState.pendingSync || !numberOneState.token || navigator.onLine === false) return;
-    const pending = loadNumberOnePending();
-    if (!pending.length) return;
     numberOneState.pendingSync = true;
+    if (numberOneElements.numberOneSyncNote) {
+        numberOneElements.numberOneSyncNote.textContent = "서버에 동기화 중…";
+        numberOneElements.numberOneSyncNote.classList.add("syncing");
+    }
     try {
-        for (const item of pending) {
-            const result = await numberOneRequest("numberOneSaveDay", {
-                token: numberOneState.token,
-                workDate: item.workDate,
-                values: item.values
-            });
-            numberOneState.data = result.data;
-            saveNumberOneCache(result.data);
-            removeNumberOnePending(item.workDate);
+        while (true) {
+            const pending = loadNumberOnePending();
+            if (!pending.length) break;
+            const item = pending[0];
+            const action = item.type === "delete" ? "numberOneDeleteDay" : "numberOneSaveDay";
+            const payload = item.type === "delete"
+                ? { token: numberOneState.token, workDate: item.workDate }
+                : { token: numberOneState.token, workDate: item.workDate, values: item.values };
+            await numberOneRequest(action, payload);
+            removeNumberOnePending(item.workDate, item.savedAt);
         }
+        if (numberOneState.data) saveNumberOneCache(numberOneState.data);
         renderNumberOneApp();
-        numberOneToast("임시 저장 기록을 서버에 반영했습니다.");
     } catch (error) {
-        // 다음 온라인 전환 또는 앱 실행 시 다시 시도합니다.
+        if (/인증|토큰|만료|사용 중지/.test(error.message)) {
+            clearNumberOneSession();
+            renderNumberOneLocked();
+            numberOneToast("전용 인증이 만료되었습니다.");
+        } else if (numberOneElements.numberOneSyncNote) {
+            numberOneElements.numberOneSyncNote.textContent = "서버 연결 시 자동으로 다시 동기화합니다.";
+            numberOneElements.numberOneSyncNote.classList.add("warning");
+        }
     } finally {
         numberOneState.pendingSync = false;
+        numberOneElements.numberOneSyncNote?.classList.remove("syncing");
+        const remaining = loadNumberOnePending();
+        if (remaining.length && navigator.onLine !== false && numberOneState.token) {
+            window.setTimeout(() => void flushNumberOnePending(), 1200);
+        }
+    }
+}
+
+function reapplyNumberOnePendingLocally() {
+    if (!numberOneState.data) return;
+    const pending = loadNumberOnePending().slice().sort((a, b) => Number(a.savedAt) - Number(b.savedAt));
+    for (const item of pending) {
+        if (item.type === "delete") applyNumberOneLocalDelete(item.workDate);
+        else applyNumberOneLocalSave(item.workDate, item.values || {});
     }
 }
 
@@ -514,13 +585,22 @@ function applyNumberOneLocalSave(workDate, values) {
     saveNumberOneCache(numberOneState.data);
 }
 
+function applyNumberOneLocalDelete(workDate) {
+    if (!numberOneState.data) return;
+    const days = (Array.isArray(numberOneState.data.days) ? numberOneState.data.days : [])
+        .filter(item => item.workDate !== workDate);
+    numberOneState.data.days = days;
+    numberOneState.data.summary = calculateNumberOneLocalSummary(days);
+    saveNumberOneCache(numberOneState.data);
+}
+
 function calculateNumberOneLocalSummary(days) {
     const sorted = (days || []).slice().sort((a, b) => String(a.workDate).localeCompare(String(b.workDate)));
     let totalCount = 0;
     let tenToSeventeenCount = 0;
     let hasMissingTotal = false;
     for (const day of sorted) {
-        const hasAny = [day.totalCount, day.tenToSeventeen, day.tenToTwentyFour, day.sixToTen].some(value => value !== null && value !== undefined);
+        const hasAny = hasNumberOneDayValues(day);
         if (day.totalCount === null || day.totalCount === undefined) {
             if (hasAny) hasMissingTotal = true;
         } else totalCount += Number(day.totalCount) || 0;
@@ -544,12 +624,11 @@ function calculateNumberOneLocalSummary(days) {
             } else if (cumulative >= 150) {
                 premiumEligibleCount += Number(ten24) || 0;
             } else if (cumulative + total > 150) {
-                if (six10 === null || six10 === undefined) {
+                const premiumRange = calculateNumberOneCrossingPremiumRange(cumulative, total, Number(ten24) || 0, six10);
+                premiumEligibleCount += premiumRange.minimum;
+                if (!premiumRange.exact) {
                     needsSixToTen = true;
                     bonusExact = false;
-                } else {
-                    const after150ByEndOfTen24 = cumulative + (Number(six10) || 0) + (Number(ten24) || 0) - 150;
-                    premiumEligibleCount += Math.max(0, Math.min(Number(ten24) || 0, after150ByEndOfTen24));
                 }
             }
         }
@@ -558,6 +637,21 @@ function calculateNumberOneLocalSummary(days) {
     const baseBonus = Math.max(0, totalCount - 150) * 1000;
     const premiumBonus = premiumQualified ? premiumEligibleCount * 500 : 0;
     return { totalCount, tenToSeventeenCount, baseBonus, premiumBonus, totalBonus: baseBonus + premiumBonus, premiumQualified, premiumEligibleCount, bonusExact, hasMissingTotal, crossingWorkDate, needsSixToTen };
+}
+
+function calculateNumberOneCrossingPremiumRange(cumulativeBefore, total, tenToTwentyFour, sixToTen) {
+    const cumulative = Math.max(0, Number(cumulativeBefore) || 0);
+    const dayTotal = Math.max(0, Number(total) || 0);
+    const ten24 = Math.max(0, Number(tenToTwentyFour) || 0);
+    const clampEligible = value => Math.max(0, Math.min(ten24, Number(value) || 0));
+    if (sixToTen !== null && sixToTen !== undefined) {
+        const exactValue = clampEligible(cumulative + Math.max(0, Number(sixToTen) || 0) + ten24 - 150);
+        return { minimum: exactValue, maximum: exactValue, exact: true };
+    }
+    const nonTen24 = Math.max(0, dayTotal - ten24);
+    const minimum = clampEligible(cumulative + ten24 - 150);
+    const maximum = clampEligible(cumulative + nonTen24 + ten24 - 150);
+    return { minimum, maximum, exact: minimum === maximum };
 }
 
 function numberOneToast(message) {
