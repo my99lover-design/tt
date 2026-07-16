@@ -31,7 +31,7 @@
 .number-one-day-status.partial { background:rgba(245,158,11,.12); color:#b45309; }
 [data-theme="dark"] .number-one-day-status.complete { color:#86efac; }
 [data-theme="dark"] .number-one-day-status.partial { color:#fbbf24; }
-.number-one-input-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:7px; }
+.number-one-input-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:7px; }
 .number-one-field { min-width:0; }
 .number-one-field label { display:flex; align-items:center; justify-content:space-between; gap:4px; margin:0 0 4px; color:var(--text-sub); font-size:.65rem; font-weight:850; }
 .number-one-field label small { color:var(--primary); font-size:.55rem; font-weight:900; }
@@ -93,6 +93,12 @@ body.number-one-screen-active #numberOneSection { display:block!important; margi
     .number-one-delete-btn { font-size:.7rem; }
 }
 
-/* v20 화면 전환·17~24 입력·관리자 비밀 진입 */
+/* v21 3개 입력·기타시간 자동계산·관리자 비밀 진입 */
 #titleMain { -webkit-user-select:none; user-select:none; touch-action:manipulation; }
 body:not(.number-one-screen-active) #numberOneSection { display:none!important; }
+
+@media (max-width:360px) {
+    .number-one-input-grid { gap:5px; }
+    .number-one-field label { font-size:.6rem; }
+    .number-one-field input { padding:8px 5px; font-size:.94rem; }
+}
