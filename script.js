@@ -1,7 +1,7 @@
 "use strict";
-/* 넘버원 김포B 공비 - GPS·데이터 갱신 명칭 구분판 20260716-15 */
+/* 넘버원 김포B 공비 - GPS·데이터 갱신 명칭 구분판 20260716-16 */
 const APP_BOOT_STARTED_AT = performance.now();
-const API_URL = "https://script.google.com/macros/s/AKfycbyFbQUILKYrMZEfGl8tXPHThYEK1ncyU0JV36Dbfiqi5cdFRKY06PQUS4IwHDDLW8boIA/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbxMc74RsguWtr-4Nx3w2OeTctpb8-ILGN5j41kW97YNY-0KMX4FOfdvQUKDL0UGTbxk/exec";
 const LOCATIONS_URL = "./locations.json";
 const GATE_IMAGES = Object.freeze({
     "썬앤빌": { src: "./gate-images/썬앤빌.webp", label: "썬앤빌" },
@@ -986,6 +986,8 @@ function updateHeaderAndNavigation() {
     if (elements.historyBtn) elements.historyBtn.hidden = !isHome;
     if (elements.adminBtn) elements.adminBtn.hidden = !isHome;
     if (elements.homeDataStatusCard) elements.homeDataStatusCard.hidden = !isHome;
+    const numberOneSection = document.getElementById("numberOneSection");
+    if (numberOneSection) numberOneSection.hidden = !isHome;
     if (isHome) updateHomeDataStatusCard();
     syncGpsWatch();
 }
@@ -4112,7 +4114,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
 /* ========================= 성능 판정 현실화 v24 ========================= */
-const FINAL_BUILD_INFO = Object.freeze({ fileVersion: "20260716-15", serviceWorkerVersion: "v40" });
+const FINAL_BUILD_INFO = Object.freeze({ fileVersion: "20260716-16", serviceWorkerVersion: "v41" });
 const SAFE_MODE_BUILD_KEY = "gimpoB_safe_mode_build_v1";
 (function clearStaleSafeModeAfterBuildUpdate() {
     try {

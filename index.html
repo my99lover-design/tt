@@ -11,7 +11,8 @@
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
     <link rel="apple-touch-icon" href="icons/icon-180.png">
-    <link rel="stylesheet" href="style.css?v=20260716-15">
+    <link rel="stylesheet" href="style.css?v=20260716-16">
+    <link rel="stylesheet" href="number-one.css?v=20260716-16">
 </head>
 <body>
 <div class="container">
@@ -21,6 +22,57 @@
     </header>
 
     <button id="installAppBtn" class="install-app-btn" type="button" hidden>📲 앱 설치</button>
+
+    <section id="numberOneSection" class="number-one-section" hidden>
+        <div class="number-one-shell">
+            <div id="numberOneLocked" class="number-one-locked">
+                <div class="number-one-locked-copy">
+                    <div class="number-one-locked-title">🏅 넘버원 전용 주간 수행</div>
+                    <div class="number-one-locked-sub">익명 인증 후 내 기록만 저장·계산</div>
+                </div>
+                <div>
+                    <button id="numberOneLoginBtn" class="number-one-auth-btn" type="button">인증</button>
+                    <button id="numberOneRetryBtn" class="number-one-auth-btn" type="button" hidden>재연결</button>
+                </div>
+            </div>
+            <div id="numberOneApp" class="number-one-app" hidden>
+                <div class="number-one-header">
+                    <div>
+                        <div class="number-one-title">🏅 넘버원 주간 수행</div>
+                        <div id="numberOneWeekRange" class="number-one-week-range">주간 정보 확인 중</div>
+                    </div>
+                    <button id="numberOneUserCode" class="number-one-user-code" type="button">익명 코드</button>
+                </div>
+                <div class="number-one-summary">
+                    <div class="number-one-summary-item"><div class="number-one-summary-label">주간 총건수</div><div id="numberOneTotal" class="number-one-summary-value">0건</div></div>
+                    <div class="number-one-summary-item"><div class="number-one-summary-label">10~17시</div><div id="numberOnePeak" class="number-one-summary-value">0건</div></div>
+                    <div class="number-one-summary-item"><div class="number-one-summary-label">예상 추가금</div><div id="numberOneBonus" class="number-one-summary-value bonus">0원</div></div>
+                </div>
+                <div class="number-one-condition-row">
+                    <div id="numberOneCondition150" class="number-one-condition">151건 추가 시작 0/150</div>
+                    <div id="numberOneCondition250" class="number-one-condition">주 250건 0/250</div>
+                    <div id="numberOneConditionPeak" class="number-one-condition">10~17시 100건 0/100</div>
+                </div>
+                <div class="number-one-input-card">
+                    <div class="number-one-input-head">
+                        <div id="numberOneInputTitle" class="number-one-input-title">오늘 수행</div>
+                        <div id="numberOneDayStatus" class="number-one-day-status">미입력</div>
+                    </div>
+                    <div class="number-one-input-grid">
+                        <div class="number-one-field"><label for="numberOneTotalInput">총건수</label><input id="numberOneTotalInput" type="number" inputmode="numeric" min="0" max="999" placeholder="입력"></div>
+                        <div class="number-one-field"><label for="numberOneTen17Input">10~17시</label><input id="numberOneTen17Input" type="number" inputmode="numeric" min="0" max="999" placeholder="입력"></div>
+                        <div class="number-one-field"><label for="numberOneTen24Input">10~24시</label><input id="numberOneTen24Input" type="number" inputmode="numeric" min="0" max="999" placeholder="입력"></div>
+                        <div id="numberOneSix10Field" class="number-one-field"><label for="numberOneSix10Input">06~10시 <small>선택</small></label><input id="numberOneSix10Input" type="number" inputmode="numeric" min="0" max="999" placeholder="돌파일용"></div>
+                    </div>
+                    <div id="numberOneInputGuide" class="number-one-input-guide">필요한 항목만 나눠 저장할 수 있습니다.</div>
+                    <button id="numberOneSaveBtn" class="number-one-save-btn" type="button">저장</button>
+                </div>
+                <button id="numberOneDetailsToggle" class="number-one-details-toggle" type="button">이번 주 기록 보기</button>
+                <div id="numberOneDetails" class="number-one-details" hidden></div>
+                <div id="numberOneSyncNote" class="number-one-sync-note"></div>
+            </div>
+        </div>
+    </section>
 
     <nav id="navContainer" class="nav-buttons-container">
         <button id="backBtn" class="nav-btn" type="button" onclick="goBack()">⬅️ 뒤로가기</button>
@@ -63,6 +115,23 @@
             <span id="adminPerformanceAlertBadge" class="admin-performance-alert-badge" hidden></span>
         </button>
         <button id="historyBtn" class="history-btn history-btn-bottom" type="button">🕘 수정기록</button>
+    </div>
+</div>
+
+
+<div id="numberOnePinModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="numberOnePinModalTitle">
+    <div class="modal-content number-one-pin-modal-content">
+        <h3 id="numberOnePinModalTitle">🏅 넘버원 전용 인증</h3>
+        <p class="number-one-pin-description">공통 PIN 인증 후 익명 사용자 코드가 자동 발급됩니다.<br>같은 휴대폰에서는 다음부터 자동으로 열립니다.</p>
+        <div class="form-group">
+            <label for="numberOnePinInput">전용 PIN 6자리</label>
+            <input id="numberOnePinInput" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="off" placeholder="••••••">
+        </div>
+        <div id="numberOnePinError" class="number-one-pin-error" hidden></div>
+        <div class="modal-buttons">
+            <button id="numberOnePinSubmitBtn" class="modal-btn btn-submit" type="button">확인</button>
+            <button id="numberOnePinCancelBtn" class="modal-btn btn-cancel" type="button">취소</button>
+        </div>
     </div>
 </div>
 
@@ -273,6 +342,7 @@
 </div>
 
 <div id="toast" class="toast" role="status" aria-live="polite"><span id="toastMessage"></span><button id="toastActionBtn" class="toast-action-btn" type="button" hidden></button></div>
-<script src="script.js?v=20260716-15"></script>
+<script src="script.js?v=20260716-16"></script>
+<script src="number-one.js?v=20260716-16"></script>
 </body>
 </html>
